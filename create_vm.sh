@@ -7,28 +7,35 @@ set -e
 set -o pipefail
 
 # --- Logging Setup ---
-LOG_FILE="vm_creator.log"
+LOG_FILE="creacion_maquina.log"
 log() {
+    local level="${2:-INFO}"
     local message="$1"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local xtrace_state=$(shopt -p -o xtrace)
     { set +x; } 2>/dev/null
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $message" | tee -a "$LOG_FILE" >&2
+    echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE" >&2
     eval "$xtrace_state"
 }
 
 # --- Cleanup Trap ---
 MOUNT_DIR=""
 LOOP_DEV=""
+CLEANUP_DONE=0
 cleanup() {
     local exit_code=$?
+    if [ $CLEANUP_DONE -eq 1 ]; then return; fi
+    CLEANUP_DONE=1
+    
     { set +x; } 2>/dev/null
-    if [ $exit_code -ne 0 ]; then
-        log "ERROR DETECTADO (Código: $exit_code). Iniciando limpieza de seguridad..."
+    if [ $exit_code -ne 0 ] && [ $exit_code -ne 130 ]; then
+        log "ERROR DETECTADO (Código: $exit_code). Iniciando limpieza de seguridad..." "ERROR"
     else
-        log "Limpieza final de montajes y dispositivos..."
+        log "Limpieza final de montajes y dispositivos..." "DEBUG"
     fi
 
     if [[ -n "$MOUNT_DIR" && -d "$MOUNT_DIR" ]]; then
+        log "Desmontando sistemas de archivos en $MOUNT_DIR..." "DEBUG"
         for d in run sys proc dev/pts dev tmp/wallpapers; do
             if mountpoint -q "$MOUNT_DIR/$d"; then
                 sudo umount -l "$MOUNT_DIR/$d" 2>/dev/null || true
@@ -40,11 +47,40 @@ cleanup() {
         rm -rf "$MOUNT_DIR"
     fi
     if [[ -n "$LOOP_DEV" ]]; then
+        log "Liberando dispositivo loop $LOOP_DEV..." "DEBUG"
         sudo losetup -d "$LOOP_DEV" 2>/dev/null || true
     fi
-    log "Proceso terminado."
+    log "Proceso terminado." "DEBUG"
 }
-trap cleanup ERR EXIT
+trap cleanup ERR EXIT INT TERM
+
+# --- Help Function ---
+show_help() {
+    cat <<EOF
+Uso: sudo $0 [OPCIONES]
+
+Creador de Máquinas Virtuales Marca Acme - Script de automatización para Sistemas y Programación.
+
+Opciones:
+  --help                Muestra esta ayuda.
+  --name NOMBRE         Nombre de la VM (defecto: acme_vm_[timestamp]).
+  --os SO               Sistema operativo: ubuntu o debian (defecto: ubuntu).
+  --hyp HYPERVISOR      Hypervisor: vbox, vmware, qemu (defecto: vbox).
+  --ram MB              Cantidad de RAM en MB (defecto: 2048).
+  --disk SIZE           Tamaño del disco (ej: 50G) (defecto: 50G).
+  --user USER           Usuario del sistema (defecto: user).
+  --pass PASS           Contraseña del usuario (defecto: password).
+  --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, none (defecto: none).
+  --mirror URL          URL del mirror personalizado.
+  --verbose             Activa el modo de depuración (set -x).
+
+Ejemplo:
+  sudo $0 --name mi_servidor --os debian --ram 4096 --desktop xfce --verbose
+
+Nota: Este script requiere privilegios de superusuario (sudo) para montar discos y ejecutar debootstrap.
+EOF
+    exit 0
+}
 
 # --- Default Configurations ---
 VM_RAM=2048
@@ -58,7 +94,7 @@ OPT_SNAP=""
 DESKTOP=""
 COMPRESS_FORMAT=""
 LOCALE=$(echo $LANG | cut -d. -f1).UTF-8
-[[ -z "$LOCALE" ]] && LOCALE="es_ES.UTF-8"
+[[ -z "$LOCALE" || "$LOCALE" == ".UTF-8" ]] && LOCALE="es_ES.UTF-8"
 KEYMAP="es"
 TIMEZONE=$(cat /etc/timezone 2>/dev/null || echo "Europe/Madrid")
 VM_USER="user"
@@ -69,6 +105,25 @@ LOCAL_WP_DIR=""
 EXTREPOS=""
 OS_CODENAME=""
 VERBOSE_MODE="n"
+
+# --- Argument Parsing ---
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --help) show_help ;;
+        --name) NAME="$2"; shift ;;
+        --os) OS="$2"; shift ;;
+        --hyp) HYPERVISOR="$2"; shift ;;
+        --ram) VM_RAM="$2"; shift ;;
+        --disk) VM_DISK_SIZE="$2"; shift ;;
+        --user) VM_USER="$2"; shift ;;
+        --pass) VM_PASS="$2"; shift ;;
+        --desktop) DESKTOP="$2"; shift ;;
+        --mirror) SELECTED_MIRROR="$2"; shift ;;
+        --verbose) VERBOSE_MODE="s" ;;
+        *) echo "Opción desconocida: $1"; show_help ;;
+    esac
+    shift
+done
 
 # --- Mirror Selection Logic ---
 find_fastest_mirror() {
@@ -96,76 +151,129 @@ find_fastest_mirror() {
 }
 
 fetch_latest_versions() {
-    log "Detectando codename del sistema..."
+    log "Detectando codename del sistema..." "DEBUG"
     if [[ "$OS" == "ubuntu" ]]; then
         OS_CODENAME=$(curl -s https://changelogs.ubuntu.com/meta-release | grep "Dist: " | tail -1 | awk '{print $2}')
         [[ -z "$OS_CODENAME" ]] && OS_CODENAME="noble"
     else
+        # Try to get testing codename if stable is too old, or just use stable
         OS_CODENAME=$(curl -s http://ftp.debian.org/debian/dists/stable/Release | grep "^Codename:" | awk '{print $2}')
         [[ -z "$OS_CODENAME" ]] && OS_CODENAME="bookworm"
     fi
-    log "Objetivo: $OS ($OS_CODENAME)"
+    
+    if [[ -z "$OS_CODENAME" ]]; then
+        log "Error al detectar codename, usando valores por defecto." "WARNING"
+        [[ "$OS" == "ubuntu" ]] && OS_CODENAME="noble" || OS_CODENAME="bookworm"
+    fi
+    log "Objetivo detectado: $OS ($OS_CODENAME)" "INFO"
 }
 
 check_dependencies() {
-    log "Verificando dependencias del host..."
+    log "Verificando dependencias en el host para $HYPERVISOR..." "INFO"
     local deps=("curl" "qemu-img" "zip" "7z" "rar" "openssl" "bc" "jq" "debootstrap" "parted" "kpartx" "binfmt-support" "qemu-user-static")
+    [[ "$HYPERVISOR" == "vbox" ]] && deps+=("VBoxManage")
+    
     local missing=()
     for dep in "${deps[@]}"; do
-        if ! command -v "$dep" &> /dev/null; then missing+=("$dep"); fi
+        local found=0
+        log "Comprobando: $dep" "DEBUG"
+        if command -v "$dep" &> /dev/null; then
+            found=1
+        elif dpkg-query -W -f='${Status}' "$dep" 2>/dev/null | grep -q "ok installed"; then
+            found=1
+        elif [[ "$dep" == "binfmt-support" ]] && [[ -f /usr/sbin/update-binfmts ]]; then
+            found=1
+        fi
+        
+        if [[ $found -eq 0 ]]; then
+            # Special case for 7z and rar which might have different package names
+            if [[ "$dep" == "7z" ]] && (command -v 7z &> /dev/null || command -v 7zr &> /dev/null); then continue; fi
+            if [[ "$dep" == "rar" ]] && (command -v rar &> /dev/null || command -v unrar &> /dev/null); then continue; fi
+            log "Falta dependencia: $dep" "WARNING"
+            missing+=("$dep")
+        fi
     done
+    
     if [[ ${#missing[@]} -gt 0 ]]; then
-        log "Instalando: ${missing[*]}"
-        sudo apt-get update && sudo apt-get install -y "${missing[@]}"
+        log "Instalando dependencias faltantes: ${missing[*]}" "INFO"
+        sudo apt-get update >> "$LOG_FILE" 2>&1
+        # Use a more robust install that handles potential package name variations
+        for m in "${missing[@]}"; do
+            case $m in
+                7z) sudo apt-get install -y p7zip-full >> "$LOG_FILE" 2>&1 || sudo apt-get install -y p7zip >> "$LOG_FILE" 2>&1 ;;
+                rar) sudo apt-get install -y unrar-free >> "$LOG_FILE" 2>&1 || sudo apt-get install -y rar >> "$LOG_FILE" 2>&1 ;;
+                *) sudo apt-get install -y "$m" >> "$LOG_FILE" 2>&1 ;;
+            esac
+        done
+    else
+        log "Todas las dependencias están presentes." "INFO"
     fi
 }
 
 # --- Menu ---
 echo "--- CONFIGURACIÓN: creador de maquinas virtuales marca acme ---"
+
+if [[ -z "$NAME" ]]; then
+    read -p "Nombre de la VM: " NAME
+    [[ -z "$NAME" ]] && NAME="acme_vm_$(date +%s)"
+fi
+
+if [[ -z "$HYPERVISOR" ]]; then
+    echo "Hypervisor: 1) VirtualBox 2) VMware 3) QEMU"
+    read -p "Opción [1]: " hyp_opt
+    case $hyp_opt in 2) HYPERVISOR="vmware" ;; 3) HYPERVISOR="qemu" ;; *) HYPERVISOR="vbox" ;; esac
+fi
+
 check_dependencies
-read -p "Nombre de la VM: " NAME
-[[ -z "$NAME" ]] && NAME="acme_vm_$(date +%s)"
 
-echo "Hypervisor: 1) VirtualBox 2) VMware 3) QEMU"
-read -p "Opción [1]: " hyp_opt
-case $hyp_opt in 2) HYPERVISOR="vmware" ;; 3) HYPERVISOR="qemu" ;; *) HYPERVISOR="vbox" ;; esac
+if [[ -z "$OS" ]]; then
+    echo "Sistema: 1) Ubuntu 2) Debian"
+    read -p "Opción [1]: " os_opt
+    case $os_opt in 2) OS="debian" ;; *) OS="ubuntu" ;; esac
+fi
 
-echo "Sistema: 1) Ubuntu 2) Debian"
-read -p "Opción [1]: " os_opt
-case $os_opt in 2) OS="debian" ;; *) OS="ubuntu" ;; esac
-
-read -p "RAM (MB) [$VM_RAM]: " input_ram; [[ -n "$input_ram" ]] && VM_RAM="$input_ram"
-read -p "Disco (ej: 50G) [$VM_DISK_SIZE]: " input_disk; [[ -n "$input_disk" ]] && VM_DISK_SIZE="$input_disk"
+[[ -z "$VM_RAM" ]] && { read -p "RAM (MB) [2048]: " input_ram; VM_RAM="${input_ram:-2048}"; }
+[[ -z "$VM_DISK_SIZE" ]] && { read -p "Disco (ej: 50G) [50G]: " input_disk; VM_DISK_SIZE="${input_disk:-50G}"; }
 read -p "Idioma [$LOCALE]: " input_locale; [[ -n "$input_locale" ]] && LOCALE="$input_locale"
 read -p "Teclado [$KEYMAP]: " input_keymap; [[ -n "$input_keymap" ]] && KEYMAP="$input_keymap"
 read -p "Zona Horaria [$TIMEZONE]: " input_tz; [[ -n "$input_tz" ]] && TIMEZONE="$input_tz"
 
-read -p "¿Usuario/Pass personalizados? (s/n) [n]: " set_auth
-if [[ "$set_auth" == "s" ]]; then
-    read -p "Usuario: " VM_USER; read -s -p "Contraseña: " VM_PASS; echo ""
+if [[ -z "$VM_USER" ]]; then
+    read -p "¿Usuario/Pass personalizados? (s/n) [n]: " set_auth
+    if [[ "$set_auth" == "s" ]]; then
+        read -p "Usuario: " VM_USER; read -s -p "Contraseña: " VM_PASS; echo ""
+    else
+        VM_USER="user"; VM_PASS="password"
+    fi
 fi
+[[ -z "$VM_USER" ]] && VM_USER="user"
+[[ -z "$VM_PASS" ]] && VM_PASS="password"
 
 echo "Software Opcional:"
 read -p "Paquetes APT (ej: htop,ncdu): " OPT_APT
 read -p "Paquetes Flatpak (ej: vlc,spotify): " OPT_FLATPAK
 read -p "Paquetes Snap (ej: slack,discord): " OPT_SNAP
 
-echo "Mirrors: t) Default Y) Manual f) Fastest"
-read -n 1 -p "Opción [f]: " mirror_choice; echo ""
-case $mirror_choice in
-    t|T) SELECTED_MIRROR=$([[ "$OS" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/") ;;
-    y|Y) read -p "URL del Mirror: " SELECTED_MIRROR ;;
-    *) SELECTED_MIRROR=$(find_fastest_mirror "$OS") ;;
-esac
+if [[ -z "$SELECTED_MIRROR" ]]; then
+    echo "Mirrors: t) Default Y) Manual f) Fastest"
+    read -n 1 -p "Opción [f]: " mirror_choice; echo ""
+    case $mirror_choice in
+        t|T) SELECTED_MIRROR=$([[ "$OS" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/") ;;
+        y|Y) read -p "URL del Mirror: " SELECTED_MIRROR ;;
+        *) SELECTED_MIRROR=$(find_fastest_mirror "$OS") ;;
+    esac
+fi
 [[ "${SELECTED_MIRROR: -1}" != "/" ]] && SELECTED_MIRROR="${SELECTED_MIRROR}/"
 
 read -p "¿Repositorio extrepo?: " EXTREPOS
 
-echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Ninguno"
-read -p "Selecciona escritorio [7]: " desk_opt
-case $desk_opt in
-    1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; *) DESKTOP="none" ;;
-esac
+if [[ -z "$DESKTOP" ]]; then
+    echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Ninguno"
+    read -p "Selecciona escritorio [7]: " desk_opt
+    case $desk_opt in
+        1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; *) DESKTOP="none" ;;
+    esac
+fi
 
 echo "Compresión: 1) zip 2) rar 3) 7z 4) Ninguna"
 read -p "Selecciona compresión [4]: " comp_opt
@@ -206,61 +314,124 @@ fi
 
 VM_PATH="$VM_DIR/$NAME"; mkdir -p "$VM_PATH"
 RAW_DISK="$VM_PATH/${NAME}.raw"
-log "Creando disco..."
-qemu-img create -f raw "$RAW_DISK" "$VM_DISK_SIZE"
+log "Iniciando creación de disco de tamaño $VM_DISK_SIZE..." "INFO"
+qemu-img create -f raw "$RAW_DISK" "$VM_DISK_SIZE" >> "$LOG_FILE" 2>&1
 
-log "Particionando disco..."
-sudo parted -s "$RAW_DISK" mklabel msdos mkpart primary ext4 1M 100% set 1 boot on
+log "Particionando disco con tabla msdos..." "INFO"
+sudo parted -s "$RAW_DISK" mklabel msdos mkpart primary ext4 1M 100% set 1 boot on >> "$LOG_FILE" 2>&1
 LOOP_DEV=$(sudo losetup -Pf --show "$RAW_DISK")
+log "Disco asociado a $LOOP_DEV" "DEBUG"
 PART_DEV="${LOOP_DEV}p1"
-sudo mkfs.ext4 "$PART_DEV"
+log "Formateando partición $PART_DEV en EXT4..." "INFO"
+sudo mkfs.ext4 "$PART_DEV" >> "$LOG_FILE" 2>&1
 
 MOUNT_DIR=$(mktemp -d /tmp/vm_mount.XXXXXX)
+log "Montando sistema de archivos en $MOUNT_DIR..." "DEBUG"
 sudo mount "$PART_DEV" "$MOUNT_DIR"
 
 if [[ ! -e "/usr/share/debootstrap/scripts/$OS_CODENAME" ]]; then
-    log "Ajustando script de debootstrap para $OS_CODENAME..."
+    log "Ajustando script de debootstrap para $OS_CODENAME (fallback)..." "WARNING"
     LATEST_SCRIPT=$(ls -v /usr/share/debootstrap/scripts/ | grep -E '^[a-z]+$' | tail -n 1)
+    log "Usando script base: $LATEST_SCRIPT" "DEBUG"
     sudo ln -sf "$LATEST_SCRIPT" "/usr/share/debootstrap/scripts/$OS_CODENAME"
 fi
 
-log "Ejecutando debootstrap..."
-sudo debootstrap --arch amd64 "$OS_CODENAME" "$MOUNT_DIR" "$SELECTED_MIRROR"
+log "Ejecutando debootstrap (esto puede tardar varios minutos)..." "INFO"
+log "Mirror: $SELECTED_MIRROR | Codename: $OS_CODENAME" "DEBUG"
+sudo debootstrap --arch amd64 "$OS_CODENAME" "$MOUNT_DIR" "$SELECTED_MIRROR" >> "$LOG_FILE" 2>&1
 
 # --- CHROOT CONFIG ---
-log "Iniciando fase CHROOT..."
+log "Preparando fase CHROOT..." "INFO"
+
+# Determinar paquetes de herramientas de invitado y kernel (Host Logic)
+G_PKG=""
+if [[ "$HYPERVISOR" == "vbox" ]]; then
+    G_PKG="virtualbox-guest-x11 virtualbox-guest-utils"
+    [[ "$OS" == "debian" ]] && G_PKG="$G_PKG virtualbox-guest-dkms"
+elif [[ "$HYPERVISOR" == "vmware" ]]; then
+    G_PKG="open-vm-tools-desktop"
+elif [[ "$HYPERVISOR" == "qemu" ]]; then
+    G_PKG="qemu-guest-agent"
+fi
+
+if [[ "$OS" == "ubuntu" ]]; then
+    KERNEL_PKGS="linux-image-generic grub-pc"
+else
+    KERNEL_PKGS="linux-image-amd64 grub-pc"
+    [[ "$HYPERVISOR" == "vbox" ]] && KERNEL_PKGS="$KERNEL_PKGS linux-headers-amd64 build-essential"
+fi
+
 cat <<CHROOT_SCRIPT > "$CONFIG_DIR/$NAME/setup.sh"
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive
-set -e
-echo "Configurando sistema..."
+# No set -e here to allow custom error handling for optional packages
+set +e
+[[ "$VERBOSE_MODE" == "s" ]] && set -x
+
+echo "Configurando sistema (chroot phase)..."
 
 echo "$NAME" > /etc/hostname
 echo "127.0.0.1 localhost $NAME" > /etc/hosts
 
+echo "Configurando repositorios..."
 if [[ "$OS" == "ubuntu" ]]; then
     echo "deb $SELECTED_MIRROR $OS_CODENAME main restricted universe multiverse" > /etc/apt/sources.list
     echo "deb $SELECTED_MIRROR $OS_CODENAME-updates main restricted universe multiverse" >> /etc/apt/sources.list
+    echo "deb $SELECTED_MIRROR $OS_CODENAME-security main restricted universe multiverse" >> /etc/apt/sources.list
 else
-    echo "deb $SELECTED_MIRROR $OS_CODENAME main" > /etc/apt/sources.list
+    # Debian: ensure contrib, non-free and backports are always there (Fast Track requirement)
+    echo "deb $SELECTED_MIRROR $OS_CODENAME main contrib non-free non-free-firmware" > /etc/apt/sources.list
+    echo "deb $SELECTED_MIRROR $OS_CODENAME-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+    echo "deb $SELECTED_MIRROR $OS_CODENAME-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+    echo "deb http://security.debian.org/debian-security $OS_CODENAME-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
 fi
+
+echo "Actualizando listas de paquetes..."
 apt-get update
 
-apt-get install -y locales tzdata sudo console-setup
-echo "$LOCALE UTF-8" > /etc/locale.gen && locale-gen
-update-locale LANG=$LOCALE && ln -fs /usr/share/zoneinfo/$TIMEZONE /etc/localtime
+echo "Instalando paquetes base (locales, sudo)..."
+apt-get install -y locales sudo tzdata console-setup
+
+echo "Configurando locale y zona horaria..."
+# Generamos el locale antes de intentar usarlo para evitar advertencias de Perl
+sed -i "s/^# *$LOCALE/$LOCALE/" /etc/locale.gen || echo "$LOCALE UTF-8" >> /etc/locale.gen
+locale-gen
+update-locale LANG=$LOCALE
+export LANG=$LOCALE
+export LC_ALL=$LOCALE
+
+ln -fs /usr/share/zoneinfo/$TIMEZONE /etc/localtime
 dpkg-reconfigure -f noninteractive tzdata
 
+if [[ "$OS" == "debian" && "$HYPERVISOR" == "vbox" ]]; then
+    echo "Configurando soporte para VirtualBox en Debian (Fast Track)..."
+    apt-get install -y wget gnupg
+    # Importar llave desde servidor de llaves (ID de Fast Track: AD743EF7)
+    # Fingerprint: B490 2862 8D3F B7C0 AB8F B014 C47F 8A8A AD74 3EF7
+    echo "Obteniendo llave GPG de Fast Track desde keyserver..."
+    gpg --keyserver keyserver.ubuntu.com --recv-keys AD743EF7 || \
+    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys AD743EF7 || \
+    gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys AD743EF7
+    
+    gpg --export AD743EF7 > /usr/share/keyrings/debian-fasttrack-archive-keyring.gpg
+    
+    echo "deb [signed-by=/usr/share/keyrings/debian-fasttrack-archive-keyring.gpg] http://fasttrack.debian.net/debian-fasttrack $OS_CODENAME-fasttrack main contrib" > /etc/apt/sources.list.d/fasttrack.list
+    apt-get update
+fi
+
+echo "Creando usuario $VM_USER..."
 useradd -m -s /bin/bash "$VM_USER"
 echo "$VM_USER:$VM_PASS" | chpasswd
 echo "$VM_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$VM_USER
 
-if [[ "$OS" == "ubuntu" ]]; then apt-get install -y linux-image-generic grub-pc
-else apt-get install -y linux-image-amd64 grub-pc
-fi
+echo "Instalando kernel y grub..."
+# Pre-configurar grub-pc
+echo "grub-pc grub-pc/install_devices multiselect \$1" | debconf-set-selections
+echo "grub-pc grub-pc/install_devices_empty boolean false" | debconf-set-selections
+apt-get install -y $KERNEL_PKGS
 
-# Aislamiento total: eliminar os-prober y forzar desactivación en config
-apt-get purge -y os-prober || true
+echo "Configurando GRUB..."
+apt-get purge -y os-prober
 if grep -q "GRUB_DISABLE_OS_PROBER" /etc/default/grub; then
     sed -i 's/^#*GRUB_DISABLE_OS_PROBER=.*/GRUB_DISABLE_OS_PROBER=true/' /etc/default/grub
 else
@@ -270,24 +441,44 @@ fi
 grub-install --target=i386-pc --force --modules=part_msdos "\$1"
 update-grub
 
-G_PKG=""
-[[ "$HYPERVISOR" == "vbox" ]] && G_PKG="virtualbox-guest-x11 virtualbox-guest-utils"
-[[ "$HYPERVISOR" == "vmware" ]] && G_PKG="open-vm-tools-desktop"
-[[ "$HYPERVISOR" == "qemu" ]] && G_PKG="qemu-guest-agent"
-apt-get install -y openssh-server curl git wget \$G_PKG
+echo "Instalando herramientas básicas..."
+apt-get install -y openssh-server curl git wget
 
-if [[ -n "$OPT_APT" ]]; then apt-get install -y ${OPT_APT//,/ }; fi
+echo "Instalando Guest Tools ($HYPERVISOR)..."
+# Install guest tools individually to prevent one missing package from failing the whole build
+for pkg in $G_PKG; do
+    echo "Intentando instalar \$pkg..."
+    apt-get install -y \$pkg || echo "Advertencia: No se pudo instalar \$pkg"
+done
+
+if [[ -n "$OPT_APT" ]]; then 
+    echo "Instalando paquetes APT opcionales..."
+    for p in \${OPT_APT//,/ }; do
+        apt-get install -y \$p || echo "Error instalando \$p"
+    done
+fi
+
 if [[ -n "$OPT_FLATPAK" ]]; then
+    echo "Configurando Flatpak..."
     apt-get install -y flatpak
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-    for p in ${OPT_FLATPAK//,/ }; do flatpak install -y flathub \$p || true; done
+    for p in ${OPT_FLATPAK//,/ }; do 
+        echo "Instalando flatpak: \$p"
+        flatpak install -y flathub \$p || true
+    done
 fi
+
 if [[ -n "$OPT_SNAP" ]]; then
+    echo "Configurando Snap..."
     apt-get install -y snapd
-    for s in ${OPT_SNAP//,/ }; do snap install \$s || echo "Snap \$s pendiente"; done
+    for s in ${OPT_SNAP//,/ }; do 
+        echo "Instalando snap: \$s"
+        snap install \$s || echo "Snap \$s pendiente"
+    done
 fi
 
 if [[ "$DESKTOP" != "none" ]]; then
+    echo "Instalando entorno de escritorio: $DESKTOP..."
     if [[ "$OS" == "ubuntu" ]]; then
         case "$DESKTOP" in
             gnome) apt-get install -y ubuntu-desktop ;;
@@ -302,42 +493,62 @@ if [[ "$DESKTOP" != "none" ]]; then
     fi
 fi
 
-if [[ -n "$EXTREPOS" ]]; then
+if [[ -n "$EXTREPOS" && "$EXTREPOS" != "n" && "$EXTREPOS" != "no" ]]; then
+    echo "Habilitando repositorios extrepo..."
     apt-get install -y extrepo
     IFS=',' read -ra ADDR <<< "$EXTREPOS"; for i in "\${ADDR[@]}"; do extrepo enable "\$i"; done
     apt-get update
 fi
 
+echo "Instalando wallpapers..."
 mkdir -p /usr/share/backgrounds/acme
 cp /tmp/wallpapers/* /usr/share/backgrounds/acme/ 2>/dev/null || true
 CHROOT_SCRIPT
 
 UUID=$(sudo blkid -s UUID -o value "$PART_DEV")
-echo "UUID=$UUID / ext4 errors=remount-ro 0 1" | sudo tee "$MOUNT_DIR/etc/fstab"
+log "UUID de la partición: $UUID" "DEBUG"
+echo "UUID=$UUID / ext4 errors=remount-ro 0 1" | sudo tee "$MOUNT_DIR/etc/fstab" >> "$LOG_FILE" 2>&1
 sudo cp "$CONFIG_DIR/$NAME/setup.sh" "$MOUNT_DIR/setup.sh"
 sudo chmod +x "$MOUNT_DIR/setup.sh"
 sudo mkdir -p "$MOUNT_DIR/tmp/wallpapers"
 [[ -d "$CONFIG_DIR/$NAME/wallpapers" ]] && sudo cp "$CONFIG_DIR/$NAME/wallpapers/"* "$MOUNT_DIR/tmp/wallpapers/" 2>/dev/null || true
 
-log "Iniciando configuración en CHROOT..."
-for d in dev dev/pts proc sys run; do sudo mount --bind /$d "$MOUNT_DIR/$d"; done
-sudo chroot "$MOUNT_DIR" /bin/bash /setup.sh "$LOOP_DEV"
+log "Iniciando configuración interna en CHROOT..." "INFO"
+for d in dev dev/pts proc sys run; do 
+    log "Montando $d..." "DEBUG"
+    sudo mount --bind /$d "$MOUNT_DIR/$d"
+done
+sudo chroot "$MOUNT_DIR" /bin/bash /setup.sh "$LOOP_DEV" 2>&1 | tee -a "$LOG_FILE"
 
-log "Limpiando montajes..."
-for d in run sys proc dev/pts dev; do sudo umount -l "$MOUNT_DIR/$d"; done
+log "Configuración CHROOT finalizada. Limpiando montajes..." "INFO"
+for d in run sys proc dev/pts dev; do 
+    log "Desmontando $d..." "DEBUG"
+    sudo umount -l "$MOUNT_DIR/$d"
+done
 sudo umount -l "$MOUNT_DIR"
 sudo losetup -d "$LOOP_DEV"
 LOOP_DEV=""
 
 # --- CONVERSION ---
-log "Convirtiendo disco..."
+log "Iniciando fase de conversión de disco para $HYPERVISOR..." "INFO"
 if [[ "$HYPERVISOR" == "vbox" ]]; then
-    VBoxManage convertfromraw "$RAW_DISK" "$VM_PATH/${NAME}.vdi" --format VDI
-    VBoxManage createvm --name "$NAME" --register --basefolder "$(pwd)/$VM_DIR"
-    VBoxManage modifyvm "$NAME" --cpus "$VM_CPUS" --memory "$VM_RAM" --vram 128 --graphicscontroller vmsvga --boot1 disk --nic1 nat --mouse usbtablet
-    VBoxManage storagectl "$NAME" --name "SATA" --add sata && VBoxManage storageattach "$NAME" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "$VM_PATH/${NAME}.vdi"
+    if command -v VBoxManage &> /dev/null; then
+        log "Convirtiendo RAW a VDI..." "DEBUG"
+        VBoxManage convertfromraw "$RAW_DISK" "$VM_PATH/${NAME}.vdi" --format VDI >> "$LOG_FILE" 2>&1
+        log "Registrando máquina virtual en VirtualBox..." "DEBUG"
+        VBoxManage createvm --name "$NAME" --register --basefolder "$(pwd)/$VM_DIR" >> "$LOG_FILE" 2>&1
+        log "Configurando hardware de la VM (RAM: $VM_RAM MB, CPUs: $VM_CPUS)..." "DEBUG"
+        VBoxManage modifyvm "$NAME" --cpus "$VM_CPUS" --memory "$VM_RAM" --vram 128 --graphicscontroller vmsvga --boot1 disk --nic1 nat --mouse usbtablet >> "$LOG_FILE" 2>&1
+        log "Adjuntando disco duro..." "DEBUG"
+        VBoxManage storagectl "$NAME" --name "SATA" --add sata >> "$LOG_FILE" 2>&1
+        VBoxManage storageattach "$NAME" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "$VM_PATH/${NAME}.vdi" >> "$LOG_FILE" 2>&1
+    else
+        log "VBoxManage no encontrado, saltando registro de VM. El disco está en $RAW_DISK" "WARNING"
+    fi
 elif [[ "$HYPERVISOR" == "vmware" ]]; then
-    qemu-img convert -f raw -O vmdk "$RAW_DISK" "$VM_PATH/${NAME}.vmdk"
+    log "Convirtiendo RAW a VMDK..." "DEBUG"
+    qemu-img convert -f raw -O vmdk "$RAW_DISK" "$VM_PATH/${NAME}.vmdk" >> "$LOG_FILE" 2>&1
+    log "Generando archivo de configuración VMX..." "DEBUG"
     cat <<EOF > "$VM_PATH/${NAME}.vmx"
 .encoding = "UTF-8"
 config.version = "8"; virtualHW.version = "14"; memsize = "$VM_RAM"; numvcpus = "$VM_CPUS"; guestOS = "ubuntu-64"; displayname = "$NAME"
@@ -345,19 +556,22 @@ scsi0.present = "TRUE"; scsi0.virtualDev = "lsilogic"; scsi0:0.present = "TRUE";
 ethernet0.present = "TRUE"; ethernet0.connectionType = "nat"; ethernet0.virtualDev = "e1000"
 EOF
 else
-    qemu-img convert -f raw -O qcow2 "$RAW_DISK" "$VM_PATH/${NAME}.qcow2"
+    log "Convirtiendo RAW a QCOW2..." "DEBUG"
+    qemu-img convert -f raw -O qcow2 "$RAW_DISK" "$VM_PATH/${NAME}.qcow2" >> "$LOG_FILE" 2>&1
 fi
 rm -f "$RAW_DISK"
 
 # --- PACKAGING ---
 if [[ "$COMPRESS_FORMAT" != "none" ]]; then
-    log "Empaquetando máquina virtual..."
+    log "Empaquetando máquina virtual en formato $COMPRESS_FORMAT..." "INFO"
     case $COMPRESS_FORMAT in
-        zip) zip -r "${NAME}.zip" "$VM_PATH" ;;
-        rar) rar a "${NAME}.rar" "$VM_PATH" ;;
-        7z) 7z a "${NAME}.7z" "$VM_PATH" && 7z t "${NAME}.7z" || { log "Error en 7z, usando respaldo ZIP"; zip -r "${NAME}.zip" "$VM_PATH"; } ;;
+        zip) zip -r "${NAME}.zip" "$VM_PATH" >> "$LOG_FILE" 2>&1 ;;
+        rar) rar a "${NAME}.rar" "$VM_PATH" >> "$LOG_FILE" 2>&1 ;;
+        7z) 7z a "${NAME}.7z" "$VM_PATH" && 7z t "${NAME}.7z" >> "$LOG_FILE" 2>&1 || { log "Error en 7z, usando respaldo ZIP" "WARNING"; zip -r "${NAME}.zip" "$VM_PATH" >> "$LOG_FILE" 2>&1; } ;;
     esac
+    log "Limpiando archivos temporales de construcción..." "DEBUG"
     rm -rf "$VM_PATH" "$CONFIG_DIR/$NAME"
 fi
 
-log "¡Proceso finalizado correctamente!"
+log "¡Proceso finalizado correctamente!" "INFO"
+exit 0
