@@ -1,42 +1,89 @@
-# Documentación Técnica: Creador de Máquinas Virtuales Marca Acme
+# Documentación Técnica: Automatización de Infraestructura (Marca Acme)
 
-Esta documentación detalla las funcionalidades avanzadas de automatización, personalización y diagnóstico implementadas en el script `create_vm.sh`.
+Esta documentación está diseñada para estudiantes de **Sistemas** y **Programación** que deseen entender cómo orquestar la creación de entornos Linux de forma profesional.
 
-## 1. Personalización Estética Avanzada (Multi-Búsqueda)
+## 1. Arquitectura del Script (Perspectiva de Programación)
 
-El script permite descargar una gran variedad de fondos de pantalla mediante la integración con la API de Wallhaven.
+El script `create_vm.sh` utiliza un enfoque modular y robusto basado en Bash:
 
-### Lógica de Multi-Búsqueda:
-- **Entrada:** El usuario introduce términos separados por comas (ej: `espacio,cyberpunk,naturaleza`).
-- **Procesamiento:** El script utiliza una matriz (`array`) de Bash y redefine el separador interno de campo (`IFS=','`) para iterar sobre cada búsqueda.
-- **Volumen de Descarga:** Por cada término introducido, el script solicita 10 imágenes aleatorias en alta resolución (1920x1080), asegurando una biblioteca de fondos rica y variada dentro de la VM.
+*   **Gestión de Errores (Error Handling):** Se utiliza `set -e` y `set -o pipefail` para detener la ejecución ante cualquier fallo, y un `trap` de limpieza (`cleanup`) para liberar recursos (montajes, dispositivos loop).
+*   **Inyección de Variables y Generación Dinámica:** Una técnica avanzada utilizada es la generación del script de provisión (`setup.sh`) mediante *Heredocs*. Para evitar errores de expansión de variables dentro del entorno `chroot`, la lógica de decisión (como qué paquetes instalar) se ejecuta en el **Host**. Esto garantiza que el script generado sea estático y predecible, una práctica recomendada en el desarrollo de herramientas de automatización.
+*   **Logging Avanzado:** Sistema de logs con niveles (`INFO`, `DEBUG`, etc.) y captura de flujos de salida de subprocesos, esencial para la trazabilidad en sistemas complejos.
 
-## 2. Gestión de Software y Paquetes Multi-Formato
+## 2. Administración de Sistemas (Infraestructura como Código)
 
-El sistema es un orquestador universal capaz de manejar:
-- **APT:** Procesamiento de listas por comas y conversión a argumentos de instalación.
-- **Flatpak:** Configuración automática del motor y el repositorio Flathub.
-- **Snap:** Gestión de pre-instalación de contenedores snapd.
+*   **Gestión de Repositorios y Drivers:** Para sistemas como Debian, es crucial configurar no solo los repositorios `main`, sino también `contrib`, `non-free` y los repositorios de **seguridad**.
+*   **Debian Fast Track:** En versiones recientes de Debian (como 12 Bookworm o 13 Trixie), las herramientas de invitado de VirtualBox pueden no estar presentes en los repositorios estándar debido a ciclos de lanzamiento. El script integra automáticamente el repositorio **Fast Track**, un proyecto oficial de Debian que proporciona paquetes actualizados (backports) de software como VirtualBox para garantizar la compatibilidad de drivers.
+*   **Repositorio Backports:** Requisito indispensable para Fast Track. El script habilita automáticamente los backports oficiales de Debian para asegurar que las dependencias de bajo nivel estén satisfechas.
+*   **Compilación de Módulos (DKMS):** El script automatiza la instalación de `linux-headers`, `build-essential` y `dkms` cuando se detecta VirtualBox. Esto es vital para que los drivers del invitado se compilen correctamente contra el kernel instalado en el entorno `chroot`.
 
-## 3. Seguridad, Diagnóstico y Robustez
+## 3. Seguridad y Confianza: Gestión de Llaves GPG
 
-### Aislamiento de GRUB
-Para proteger el host, se elimina físicamente `os-prober` y se desactiva explícitamente en la configuración de GRUB (`GRUB_DISABLE_OS_PROBER=true`). Esto garantiza que el cargador de la VM sea totalmente independiente, ignorando cualquier partición o sistema operativo presente en el equipo real.
+En la administración de sistemas Linux, la autenticidad de los paquetes se garantiza mediante criptografía de clave pública (GPG). Cuando añadimos un repositorio externo como **Fast Track**, debemos "decirle" a APT que confíe en él.
 
-### Auditoría de Logs y Errores
-El script implementa una función `log` que redirige la salida a `stderr` (error estándar). Esto es una práctica profesional esencial por dos razones:
-1.  **Limpieza de Datos:** Evita que los mensajes informativos se mezclen con el valor de retorno de las funciones (como la URL de un mirror).
-2.  **Trazabilidad:** Permite un seguimiento detallado en `vm_creator.log` incluso cuando el script falla. El diagnóstico de códigos de salida (como el error 127 de "comando no encontrado") es ahora más sencillo gracias a la limpieza final de montajes.
+### Métodos para agregar llaves GPG (Educativo):
 
-## 4. Bibliografía y Recursos Educativos
+1.  **Añadido Manual (Recomendado/Moderno):**
+    *   **Proceso:** Se descarga la llave pública, se desprotege (`gpg --dearmor`) y se guarda en `/usr/share/keyrings/`.
+    *   **Ventaja:** Permite usar la opción `[signed-by=...]` en el archivo `.list`, lo que limita la confianza de esa llave *solo* a ese repositorio específico (principio de mínimo privilegio).
+    *   **Ejemplo en el script:** `wget -qO- [URL_KEY] | gpg --dearmor -o /usr/share/keyrings/mi-repo.gpg`
 
-1.  **Bash Arrays & IFS:** [Manipulación avanzada de listas en scripts](https://linuxconfig.org/how-to-use-arrays-in-bash).
-2.  **Wallhaven API Reference:** [Automatización de recursos gráficos](https://wallhaven.cc/help/api).
-3.  **Standard Streams (stdout/stderr):** [Entendiendo las salidas en Linux](https://www.gnu.org/software/bash/manual/html_node/Redirections.html).
-4.  **Exit Codes Troubleshooting:** [Guía de códigos de error comunes](https://tldp.org/LDP/abs/html/exitcodes.html).
-5.  **Multi-format Package Management:** [Estrategias para Flatpak y Snap](https://ubuntu.com/blog/snap-vs-flatpak).
-6.  **Advanced debootstrap scripts:** [Creación de mirrors y fallbacks de versiones](https://wiki.debian.org/Debootstrap).
-7.  **Partitioning with GNU Parted:** [Scripts para gestión de discos](https://www.gnu.org/software/parted/manual/parted.html).
-8.  **Bash Traps & Cleanup:** [Gestión de señales y limpieza de emergencia](https://linuxcommand.org/lc3_wss0160.php).
-9.  **JQ Processing for APIs:** [Extracción de datos JSON desde shell](https://stedolan.github.io/jq/manual/).
-10. **VirtualBox CLI Reference:** [Gestión de hardware virtual](https://www.virtualbox.org/manual/ch08.html).
+2.  **Paquete de Keyring (Oficial):**
+    *   **Proceso:** Instalar un paquete `.deb` que contiene las llaves (ej: `fasttrack-archive-keyring`).
+    *   **Ventaja:** Las llaves se actualizan automáticamente cuando el proyecto las renueva a través de `apt upgrade`.
+
+3.  **Método Heredado (Deprecated):**
+    *   **Comando:** `apt-key add`.
+    *   **Riesgo:** Añade la llave a un llavero global compartido (`/etc/apt/trusted.gpg`), lo que significa que esa llave podría validar paquetes de *cualquier* repositorio, comprometiendo la seguridad global si la llave es vulnerada.
+
+## 4. debootstrap y Repositorios con Firma
+
+Cuando usamos `debootstrap` para crear una máquina desde cero, el comando verifica la firma del repositorio principal usando el llavero del sistema host (`/usr/share/keyrings/debian-archive-keyring.gpg`).
+
+Si quisiéramos incluir un repositorio externo *durante* el proceso inicial de debootstrap (antes del chroot), podríamos usar la opción:
+`--keyring=/ruta/a/mi/llave.gpg`
+
+Sin embargo, la práctica estándar en despliegues automatizados es realizar un bootstrap mínimo y configurar los repositorios adicionales en la fase de **provisión** (dentro del chroot), como hace nuestro script.
+
+## 5. Guía de Uso por Parámetros
+
+```bash
+sudo ./create_vm.sh --name "servidor_web" --os debian --ram 1024 --desktop none --verbose
+```
+
+### Tabla de Parámetros:
+| Parámetro | Descripción | Defecto |
+| :--- | :--- | :--- |
+| `--name` | Nombre de la máquina virtual | acme\_vm\_[timestamp] |
+| `--os` | Distribución (ubuntu/debian) | ubuntu |
+| `--hyp` | Hypervisor (vbox/vmware/qemu) | vbox |
+| `--ram` | Memoria RAM en Megabytes | 2048 |
+
+## 6. Registro de Cambios (Changelog Educativo)
+
+*   **v1.3 - Refuerzo de Seguridad GPG:** Implementación del método `signed-by` para el repositorio Fast Track. Se añadió soporte para `gnupg` en el entorno chroot para permitir la gestión manual de llaves.
+*   **v1.2 - Integración Fast Track:** Solución para la instalación de VirtualBox Guest Tools en Debian mediante el repositorio `fasttrack.debian.net`.
+*   **v1.1 - Fix Drivers Debian:** Inclusión de repositorios `contrib` y `non-free`.
+*   **v1.0 - Logging:** Sistema de logs detallados.
+
+## 7. Bibliografía y Recursos Educativos Ampliados
+
+### Documentación Oficial y Técnica:
+1.  **Debian Fast Track Project:** [Paquetes actualizados para Debian Stable](https://fasttrack.debian.net/).
+2.  **Debian Wiki - VirtualBox Guest Additions:** [Guía oficial de instalación](https://wiki.debian.org/VirtualBox/GuestAdditions).
+3.  **Debian debootstrap Wiki:** [Creación de sistemas base](https://wiki.debian.org/Debootstrap).
+4.  **Apt-Key Deprecation:** [Explicación sobre el fin de apt-key y el uso de signed-by](https://wiki.debian.org/DebianRepository/UseThirdParty).
+5.  **GNU Privacy Guard (GnuPG):** [Manual oficial de GPG](https://gnupg.org/documentation/manuals/gnupg/).
+6.  **DKMS Project Documentation:** [Dynamic Kernel Module Support](https://github.com/dell/dkms).
+7.  **Linux Kernel Headers:** [Por qué son necesarios para compilar módulos](https://kernelnewbies.org/KernelHeaders).
+8.  **Bash Manual - Here Documents:** [Referencia de redirección avanzada](https://www.gnu.org/software/bash/manual/html_node/Redirections.html#Here-Documents).
+9.  **QEMU Documentation:** [Formatos de imagen de disco](https://www.qemu.org/docs/master/system/images.html).
+
+### Recursos para Estudiantes (SMR/ASIR/DAM):
+10. **The Debian Administrator's Handbook:** [Gestión de paquetes y repositorios (Imprescindible)](https://debian-handbook.info/).
+11. **Google Shell Style Guide:** [Estándares de programación profesional en Bash](https://google.github.io/styleguide/shellguide.html).
+12. **Infrastructure as Code (IaC) Patterns:** [Principios de automatización modernos](https://www.hashicorp.com/resources/what-is-infrastructure-as-code).
+13. **Ciberseguridad en el despliegue:** [Guía de endurecimiento de imágenes Linux (CIS Benchmarks)](https://www.cisecurity.org/benchmark/debian_linux).
+14. **Formación Profesional (TodoFP):** [Currículo de Sistemas Microinformáticos y Redes](https://www.todofp.es/).
+de Sistemas Microinformáticos y Redes](https://www.todofp.es/).
+17. **TryHackMe / HackTheBox:** [Plataformas para practicar administración de sistemas y seguridad](https://tryhackme.com/).

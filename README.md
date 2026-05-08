@@ -1,45 +1,39 @@
 # Creador de Máquinas Virtuales Marca Acme
 
-Este script profesional automatiza la creación de infraestructuras virtualizadas para **VirtualBox**, **VMware** y **QEMU** utilizando el método de **Debootstrap** y **Chroot**.
+Herramienta educativa para la automatización de despliegues Linux mediante `debootstrap` y `chroot`. Ideal para estudiantes de ciclos formativos de Grado Medio (SMR), Superior (ASIR/DAM/DAW) o autodidactas.
 
-## Características Destacadas
+## 🚀 Inicio Rápido
 
-- **Personalización Masiva de Fondos:**
-    - Introduce múltiples términos de búsqueda separados por **comas** (ej: `espacio,cyberpunk,pokemon`).
-    - Descarga **10 imágenes de alta calidad por cada término**, creando una biblioteca estética rica dentro de tu VM.
-- **Gestión de Software Inteligente:**
-    - Soporte para paquetes **APT**, **Flatpak** y **Snap** (introducidos por comas).
-    - Configuración automática de repositorios como **Flathub**.
-- **Seguridad Host-Invitado:**
-    - Aislamiento total de GRUB: Instalación exclusiva en el disco virtual.
-    - Protección del Host: Desactivación de `os-prober` para evitar interferencias con tu sistema operativo real.
-- **Flujo de Trabajo Robusto:**
-    - Test de integridad de compresión (7z) con respaldo automático.
-    - Limpieza automática de carpetas temporales y montajes.
-    - Registro detallado en `vm_creator.log` y modo **Verbose** opcional.
+1. **Clonar y dar permisos:**
+   ```bash
+   chmod +x create_vm.sh
+   ```
 
-## Requisitos
+2. **Ejecutar con ayuda para ver opciones:**
+   ```bash
+   sudo ./create_vm.sh --help
+   ```
 
-- **Host Linux** con privilegios de `sudo`.
-- Conexión a Internet activa.
+3. **Ejemplo de creación robusta (Debian Lab - Sistemas/Ciberseguridad):**
+   ```bash
+   sudo ./create_vm.sh --name "debian_pentest" --os debian --hyp vbox --desktop xfce --ram 4096
+   ```
 
-## Uso
+## 📚 Lo que aprenderás usando este script
 
-```bash
-sudo ./create_vm.sh
-```
+Este proyecto es un laboratorio de aprendizaje avanzado:
 
-El asistente te guiará. Cuando se te pregunten los fondos de pantalla, puedes poner varios temas:
-`Fondos de Wallhaven (ej: pokemon,digimon): neon,cars,forest`
+*   **Sistemas y Ciberseguridad:** Gestión de repositorios de seguridad, firma de paquetes mediante GPG (método `signed-by`), instalación de drivers privativos mediante DKMS y endurecimiento del proceso de despliegue.
+*   **Programación:** Generación dinámica de scripts (Heredocs), inyección de variables desde el host y manejo avanzado de flujos de E/S.
+*   **DevOps:** Automatización de infraestructuras críticas y trazabilidad mediante logs de auditoría.
 
-## Documentación Educativa
+## 📊 Logging y Auditoría
 
-Este proyecto es una herramienta de aprendizaje avanzada. Consulta la [DOCUMENTACION_TECNICA.md](DOCUMENTACION_TECNICA.md) para explorar:
-- Manipulación de matrices (`arrays`) y variables de entorno (`IFS`) en Bash.
-- Interacción avanzada con APIs REST mediante comandos de terminal.
-- Gestión de flujos de error (stdout/stderr) y códigos de salida de Linux.
-- Bibliografía técnica recomendada.
+El script genera el archivo `creacion_maquina.log` con trazabilidad completa de cada fase. Para ver un resumen cronológico de la evolución del proyecto, consulta el archivo [HISTORIAL_CAMBIOS.md](HISTORIAL_CAMBIOS.md).
 
-## Registro y Auditoría
+## 📖 Documentación Completa
 
-Si encuentras algún problema, revisa el archivo `vm_creator.log`. Ha sido diseñado para separar los mensajes de estado de los datos técnicos, facilitando la identificación de errores.
+Para una explicación detallada de cada módulo, el uso del repositorio **Debian Fast Track** para compatibilidad con VirtualBox, y una bibliografía técnica extensa, consulta el archivo [DOCUMENTACION_TECNICA.md](DOCUMENTACION_TECNICA.md).
+
+---
+*Proyecto creado con fines educativos para potenciar el conocimiento en administración de sistemas y desarrollo de herramientas de automatización.*
