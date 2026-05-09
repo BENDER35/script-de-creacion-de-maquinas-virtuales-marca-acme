@@ -40,3 +40,9 @@ Este documento detalla la evolución del script `create_vm.sh` y las tareas real
     *   **Extrepo**: Refuerzo de la lógica de habilitación de repositorios externos con manejo de errores por repositorio.
     *   **Robustez de Sistema**: Implementación de `apt-get install -f` automático para reparar posibles corrupciones de paquetes durante la fase de provisión.
     *   **Optimización de Red**: Corrección de error sintáctico en la selección de mirrors (comparación de punto flotante en Bash) y normalización de locales para asegurar la detección del mirror más rápido.
+
+*   **18:30** - **Personalización Avanzada de Hardware y Sabores de Ubuntu**:
+    *   **Control de Hardware**: Implementación del parámetro `--cpucores` y preguntas en el menú interactivo para definir el tamaño de disco, memoria RAM y núcleos de CPU (con valor por defecto de 2).
+    *   **Soporte para Edubuntu**: Inclusión del sabor educativo de Ubuntu (**Edubuntu**) en la selección de escritorios bajo la opción `gnome(edub.)`.
+    *   **Mejora de la Interfaz CLI**: Optimización del menú interactivo para que solicite todos los parámetros de hardware si no se pasan por línea de comandos.
+    *   **Actualización Documental**: Revisión completa de la documentación técnica, README e historial para integrar estos cambios, enfocándolos a cursos de sistemas, programación, seguridad y microinformática.

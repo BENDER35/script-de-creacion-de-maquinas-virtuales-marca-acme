@@ -84,9 +84,20 @@ sudo ./create_vm.sh --name "servidor_web" --os debian --ram 1024 --desktop none 
 | `--os` | Distribución (ubuntu/debian) | ubuntu |
 | `--hyp` | Hypervisor (vbox/vmware/qemu) | vbox |
 | `--ram` | Memoria RAM en Megabytes | 2048 |
+| `--disk` | Tamaño del disco (ej: 50G) | 50G |
+| `--cpucores` | Número de núcleos de CPU | 2 |
+| `--desktop` | Entorno de escritorio | none |
 
-## 6. Registro de Cambios (Changelog Educativo)
+## 6. Personalización de Hardware y Sabores (Sistemas y Microinformática)
 
+Para estudiantes de **Microinformática** y **Sistemas**, entender la asignación de recursos es fundamental:
+*   **Gestión de CPUs:** El parámetro `--cpucores` permite simular entornos multiprocesador, permitiendo estudiar el rendimiento de aplicaciones multihilo en sistemas Linux.
+*   **Dimensionamiento de Recursos:** La capacidad de definir el RAM y el Disco desde el menú interactivo enseña a los estudiantes a equilibrar las necesidades del sistema operativo con los recursos físicos disponibles en el host.
+*   **Edubuntu (Educación):** La inclusión del sabor **Edubuntu** (`gnome(edub.)`) proporciona un entorno preconfigurado con herramientas educativas, ideal para cursos de formación profesional orientados a la enseñanza y el soporte técnico en centros escolares.
+
+## 7. Registro de Cambios (Changelog Educativo)
+
+*   **v1.6 - Personalización de Hardware:** Introducción de control sobre núcleos de CPU, RAM y tamaño de disco, junto con soporte para el sabor educativo Edubuntu.
 *   **v1.5 - Gestión de Identidades:** Implementación de selección dinámica de credenciales (Usuario/Pass vs root/toor) con lógica de detección de usuarios existentes.
 *   **v1.4 - Transparencia Total:** Implementación de logging global mediante redirección de descriptores de archivo. Los logs ahora incluyen fecha en el nombre y rotación automática para sesiones múltiples.
 *   **v1.3 - Refuerzo de Seguridad GPG:** Implementación del método `signed-by` para el repositorio Fast Track. Se añadió soporte para `gnupg` en el entorno chroot.

@@ -77,6 +77,7 @@ Opciones:
   --hyp HYPERVISOR      Hypervisor: vbox, vmware, qemu (defecto: vbox).
   --ram MB              Cantidad de RAM en MB (defecto: 2048).
   --disk SIZE           Tamaño del disco (ej: 50G) (defecto: 50G).
+  --cpucores NUM        Número de núcleos de CPU (defecto: 2).
   --user USER           Usuario del sistema (defecto: arbol).
   --pass PASS           Contraseña del usuario (defecto: tronco).
   --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, none (defecto: none).
@@ -124,6 +125,7 @@ while [[ "$#" -gt 0 ]]; do
         --hyp) HYPERVISOR="$2"; shift ;;
         --ram) VM_RAM="$2"; shift ;;
         --disk) VM_DISK_SIZE="$2"; shift ;;
+        --cpucores) VM_CPUS="$2"; shift ;;
         --user) VM_USER="$2"; shift ;;
         --pass) VM_PASS="$2"; shift ;;
         --desktop) DESKTOP="$2"; shift ;;
@@ -245,8 +247,10 @@ if [[ -z "$OS" ]]; then
     case $os_opt in 2) OS="debian" ;; *) OS="ubuntu" ;; esac
 fi
 
-[[ -z "$VM_RAM" ]] && { read -p "RAM (MB) [2048]: " input_ram; VM_RAM="${input_ram:-2048}"; }
-[[ -z "$VM_DISK_SIZE" ]] && { read -p "Disco (ej: 50G) [50G]: " input_disk; VM_DISK_SIZE="${input_disk:-50G}"; }
+read -p "RAM (MB) [$VM_RAM]: " input_ram; [[ -n "$input_ram" ]] && VM_RAM="$input_ram"
+read -p "Disco (ej: 50G) [$VM_DISK_SIZE]: " input_disk; [[ -n "$input_disk" ]] && VM_DISK_SIZE="$input_disk"
+read -p "Núcleos de CPU [$VM_CPUS]: " input_cpus; [[ -n "$input_cpus" ]] && VM_CPUS="$input_cpus"
+
 read -p "Idioma [$LOCALE]: " input_locale; [[ -n "$input_locale" ]] && LOCALE="$input_locale"
 read -p "Teclado [$KEYMAP]: " input_keymap; [[ -n "$input_keymap" ]] && KEYMAP="$input_keymap"
 read -p "Zona Horaria [$TIMEZONE]: " input_tz; [[ -n "$input_tz" ]] && TIMEZONE="$input_tz"
@@ -284,11 +288,19 @@ fi
 read -p "¿Repositorio extrepo?: " EXTREPOS
 
 if [[ -z "$DESKTOP" ]]; then
-    echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Ninguno"
-    read -p "Selecciona escritorio [7]: " desk_opt
-    case $desk_opt in
-        1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; *) DESKTOP="none" ;;
-    esac
+    if [[ "$OS" == "ubuntu" ]]; then
+        echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) Ninguno"
+        read -p "Selecciona escritorio [8]: " desk_opt
+        case $desk_opt in
+            1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; 7) DESKTOP="edubuntu" ;; *) DESKTOP="none" ;;
+        esac
+    else
+        echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Ninguno"
+        read -p "Selecciona escritorio [7]: " desk_opt
+        case $desk_opt in
+            1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; *) DESKTOP="none" ;;
+        esac
+    fi
 fi
 
 echo "Compresión: 1) zip 2) rar 3) 7z 4) Ninguna"
@@ -513,6 +525,7 @@ if [[ "$DESKTOP" != "none" ]]; then
             lxde) apt-get install -y lubuntu-desktop ;;
             lxqt) apt-get install -y lubuntu-desktop ;;
             budgie) apt-get install -y ubuntu-budgie-desktop ;;
+            edubuntu) apt-get install -y edubuntu-desktop ;;
         esac
     else
         apt-get install -y task-${DESKTOP}-desktop
