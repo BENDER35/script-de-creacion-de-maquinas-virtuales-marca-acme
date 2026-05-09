@@ -1,6 +1,6 @@
 # Documentación Técnica: Automatización de Infraestructura (Marca Acme)
 
-Esta documentación está diseñada para estudiantes de **Sistemas** y **Programación** que deseen entender cómo orquestar la creación de entornos Linux de forma profesional.
+Esta documentación está diseñada para estudiantes de **Sistemas**, **Ciberseguridad** y **Programación** que deseen entender cómo orquestar la creación de entornos Linux de forma profesional.
 
 ## 1. Arquitectura del Script (Perspectiva de Programación)
 
@@ -13,15 +13,23 @@ El script `create_vm.sh` utiliza un enfoque modular y robusto basado en Bash:
 ## 2. Administración de Sistemas (Infraestructura como Código)
 
 *   **Gestión de Repositorios y Drivers:** Para sistemas como Debian, es crucial configurar no solo los repositorios `main`, sino también `contrib`, `non-free` y los repositorios de **seguridad**.
+*   **Gestión de Identidad y Autenticación:** El script permite la creación de usuarios personalizados o el uso de una cuenta de superusuario (`root`) preconfigurada. Desde el punto de vista de la administración de sistemas, esto enseña la diferencia entre el uso de `sudo` para tareas administrativas (recomendado en producción) y el acceso directo como root (común en entornos de laboratorio o "hack boxes").
 *   **Debian Fast Track:** En versiones recientes de Debian (como 12 Bookworm o 13 Trixie), las herramientas de invitado de VirtualBox pueden no estar presentes en los repositorios estándar debido a ciclos de lanzamiento. El script integra automáticamente el repositorio **Fast Track**, un proyecto oficial de Debian que proporciona paquetes actualizados (backports) de software como VirtualBox para garantizar la compatibilidad de drivers.
 *   **Repositorio Backports:** Requisito indispensable para Fast Track. El script habilita automáticamente los backports oficiales de Debian para asegurar que las dependencias de bajo nivel estén satisfechas.
 *   **Compilación de Módulos (DKMS):** El script automatiza la instalación de `linux-headers`, `build-essential` y `dkms` cuando se detecta VirtualBox. Esto es vital para que los drivers del invitado se compilen correctamente contra el kernel instalado en el entorno `chroot`.
 
-## 3. Seguridad y Confianza: Gestión de Llaves GPG
+## 3. Seguridad y Confianza: Gestión de Llaves GPG y Credenciales
 
-En la administración de sistemas Linux, la autenticidad de los paquetes se garantiza mediante criptografía de clave pública (GPG). Cuando añadimos un repositorio externo como **Fast Track**, debemos "decirle" a APT que confíe en él.
+### Gestión de Credenciales (Ciberseguridad):
+En un entorno de aprendizaje de ciberseguridad, el manejo de credenciales es crítico:
+*   **Aprovisionamiento Seguro:** El script utiliza `chpasswd` para establecer contraseñas de forma no interactiva dentro del chroot. Esto evita que las contraseñas aparezcan en el historial de comandos del sistema invitado.
+*   **Principio de Mínimo Privilegio:** Cuando se crea un usuario normal, se le otorgan permisos de `sudo` sin contraseña para facilitar el aprendizaje, pero se documenta que en entornos reales esto debe ser restringido.
+*   **Uso de root/toor:** La opción por defecto `root/toor` es una convención clásica en distribuciones de seguridad (como Kali Linux en sus inicios), permitiendo a los estudiantes enfocarse en la herramienta antes que en la gestión de permisos.
 
-### Métodos para agregar llaves GPG (Educativo):
+### Gestión de llaves GPG (Educativo):
+La autenticidad de los paquetes se garantiza mediante criptografía de clave pública (GPG). Cuando añadimos un repositorio externo como **Fast Track**, debemos "decirle" a APT que confíe en él.
+
+#### Métodos para agregar llaves GPG (Educativo):
 
 1.  **Añadido Manual (Recomendado/Moderno):**
     *   **Proceso:** Se descarga la llave pública, se desprotege (`gpg --dearmor`) y se guarda en `/usr/share/keyrings/`.
@@ -61,10 +69,10 @@ sudo ./create_vm.sh --name "servidor_web" --os debian --ram 1024 --desktop none 
 
 ## 6. Registro de Cambios (Changelog Educativo)
 
-*   **v1.3 - Refuerzo de Seguridad GPG:** Implementación del método `signed-by` para el repositorio Fast Track. Se añadió soporte para `gnupg` en el entorno chroot para permitir la gestión manual de llaves.
+*   **v1.5 - Gestión de Identidades:** Implementación de selección dinámica de credenciales (Usuario/Pass vs root/toor) con lógica de detección de usuarios existentes.
+*   **v1.4 - Transparencia Total:** Implementación de logging global mediante redirección de descriptores de archivo. Los logs ahora incluyen fecha en el nombre y rotación automática para sesiones múltiples.
+*   **v1.3 - Refuerzo de Seguridad GPG:** Implementación del método `signed-by` para el repositorio Fast Track. Se añadió soporte para `gnupg` en el entorno chroot.
 *   **v1.2 - Integración Fast Track:** Solución para la instalación de VirtualBox Guest Tools en Debian mediante el repositorio `fasttrack.debian.net`.
-*   **v1.1 - Fix Drivers Debian:** Inclusión de repositorios `contrib` y `non-free`.
-*   **v1.0 - Logging:** Sistema de logs detallados.
 
 ## 7. Bibliografía y Recursos Educativos Ampliados
 
@@ -76,14 +84,24 @@ sudo ./create_vm.sh --name "servidor_web" --os debian --ram 1024 --desktop none 
 5.  **GNU Privacy Guard (GnuPG):** [Manual oficial de GPG](https://gnupg.org/documentation/manuals/gnupg/).
 6.  **DKMS Project Documentation:** [Dynamic Kernel Module Support](https://github.com/dell/dkms).
 7.  **Linux Kernel Headers:** [Por qué son necesarios para compilar módulos](https://kernelnewbies.org/KernelHeaders).
-8.  **Bash Manual - Here Documents:** [Referencia de redirección avanzada](https://www.gnu.org/software/bash/manual/html_node/Redirections.html#Here-Documents).
+8.  **Bash Manual - Redirections:** [Explicación detallada de descriptores de archivo y pipes](https://www.gnu.org/software/bash/manual/html_node/Redirections.html).
 9.  **QEMU Documentation:** [Formatos de imagen de disco](https://www.qemu.org/docs/master/system/images.html).
 
+### Administración de Usuarios y Seguridad:
+10. **Debian Wiki - SystemGroups:** [Entendiendo los grupos y privilegios en Debian](https://wiki.debian.org/SystemGroups).
+11. **Sudoers Manual:** [Configuración avanzada del archivo sudoers](https://www.sudo.ws/docs/man/sudoers.man/).
+12. **Shadow Passwords:** [Cómo Linux gestiona las contraseñas de forma segura](https://tldp.org/HOWTO/Shadow-Password-HOWTO.html).
+13. **The Linux Documentation Project - Security Guide:** [Principios de seguridad en Linux](https://tldp.org/LDP/sag/html/index.html).
+
+### Auditoría y Ciberseguridad:
+14. **NIST SP 800-92:** [Guía para la gestión de logs en seguridad informática](https://csrc.nist.gov/publications/detail/sp/800-92/final).
+15. **OWASP - Logging Cheat Sheet:** [Buenas prácticas de logging para seguridad](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Vocabulary_Cheat_Sheet.html).
+16. **CIS Benchmarks for Linux:** [Estándares de endurecimiento de sistemas](https://www.cisecurity.org/benchmarks/).
+
 ### Recursos para Estudiantes (SMR/ASIR/DAM):
-10. **The Debian Administrator's Handbook:** [Gestión de paquetes y repositorios (Imprescindible)](https://debian-handbook.info/).
-11. **Google Shell Style Guide:** [Estándares de programación profesional en Bash](https://google.github.io/styleguide/shellguide.html).
-12. **Infrastructure as Code (IaC) Patterns:** [Principios de automatización modernos](https://www.hashicorp.com/resources/what-is-infrastructure-as-code).
-13. **Ciberseguridad en el despliegue:** [Guía de endurecimiento de imágenes Linux (CIS Benchmarks)](https://www.cisecurity.org/benchmark/debian_linux).
-14. **Formación Profesional (TodoFP):** [Currículo de Sistemas Microinformáticos y Redes](https://www.todofp.es/).
-de Sistemas Microinformáticos y Redes](https://www.todofp.es/).
-17. **TryHackMe / HackTheBox:** [Plataformas para practicar administración de sistemas y seguridad](https://tryhackme.com/).
+17. **The Debian Administrator's Handbook:** [Gestión de paquetes y repositorios (Imprescindible)](https://debian-handbook.info/).
+18. **Google Shell Style Guide:** [Estándares de programación profesional en Bash](https://google.github.io/styleguide/shellguide.html).
+19. **Infrastructure as Code (IaC) Patterns:** [Principios de automatización modernos](https://www.hashicorp.com/resources/what-is-infrastructure-as-code).
+20. **ShellCheck:** [Herramienta de análisis estático para scripts de Bash (Fundamental)](https://www.shellcheck.net/).
+21. **Cybersecurity Standards (ISO/IEC 27001):** [Introducción a la gestión de seguridad de la información](https://www.iso.org/isoiec-27001-information-security.html).
+22. **TryHackMe / HackTheBox:** [Plataformas para practicar administración de sistemas y seguridad](https://tryhackme.com/).

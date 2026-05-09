@@ -22,4 +22,15 @@ Este documento detalla la evolución del script `create_vm.sh` y las tareas real
 *   **21:15** - Solución del problema de VirtualBox Tools en Debian mediante la integración del repositorio **Fast Track**.
 *   **21:30** - Actualización exhaustiva de la documentación técnica y el manual de usuario (README).
 *   **22:10** - Mejora de la seguridad GPG: Implementación del método manual `signed-by` para el repositorio Fast Track. Se añadió soporte para `gnupg` en el entorno chroot y se documentaron diversas formas de gestión de llaves para fines educativos en sistemas y ciberseguridad.
-*   **22:45** - **(Actual)** Corrección final de error GPG: Sustitución de la descarga directa de la llave (que devolvía 404) por la importación segura mediante **servidores de llaves (keyservers)**. Inclusión del repositorio de **backports** en Debian, requisito indispensable para la estabilidad de Fast Track.
+*   **22:45** - Corrección final de error GPG: Sustitución de la descarga directa de la llave (que devolvía 404) por la importación segura mediante **servidores de llaves (keyservers)**. Inclusión del repositorio de **backports** en Debian, requisito indispensable para la estabilidad de Fast Track.
+
+## 2026-05-08 (Actualización de Logging y Documentación)
+*   **23:10** - **Reforma del Sistema de Logging**: Se ha implementado un sistema de logging global que captura absolutamente toda la actividad del script (stdout y stderr) mediante redirección de flujo (`exec > >(tee ...)`) para asegurar la transparencia total en entornos educativos.
+*   **23:15** - **Nuevo Formato de Reportes**: Cambio del nombre del archivo de log a `informe_imp_maqvirt(DD-MM-AAAA).log`. Se garantiza que cada ejecución genere un archivo nuevo (con timestamp si se repite en el mismo día) para evitar sobrescrituras y facilitar el seguimiento de laboratorios.
+*   **23:25** - **Enfoque Pedagógico**: Actualización de la documentación técnica, el README y el historial para estudiantes de sistemas, ciberseguridad y programación, enfocándose en la trazabilidad, auditoría y automatización profesional.
+*   **23:35** - **Ampliación Bibliográfica**: Se ha enriquecido la bibliografía con recursos avanzados sobre auditoría de sistemas, seguridad en el despliegue y buenas prácticas de programación en Bash.
+
+## 2026-05-09
+*   **12:15** - **Personalización de Credenciales**: Implementación de una nueva funcionalidad en el menú interactivo que permite al usuario elegir entre crear un usuario/contraseña personalizados o usar los valores predeterminados de administración segura (`root`/`toor`).
+*   **12:20** - **Optimización del Setup en Chroot**: Refactorización de la lógica de creación de usuarios para manejar de forma inteligente la existencia previa del usuario (especialmente para el caso de `root`), asegurando que la configuración de `sudoers` y contraseñas sea coherente y segura.
+*   **12:30** - **Actualización Documental Educativa**: Revisión completa de `DOCUMENTACION_TECNICA.md`, `README.md` y la bibliografía para orientarlos específicamente a estudiantes de sistemas, ciberseguridad y programación, integrando conceptos de gestión de identidad y autenticación básica.

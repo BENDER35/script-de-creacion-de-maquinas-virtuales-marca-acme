@@ -7,15 +7,24 @@ set -e
 set -o pipefail
 
 # --- Logging Setup ---
-LOG_FILE="creacion_maquina.log"
+FECHA_HOY=$(date +%d-%m-%Y)
+LOG_FILE="informe_imp_maqvirt(${FECHA_HOY}).log"
+
+# Asegurar que el log sea un archivo nuevo en cada ejecución (si ya existe el del día, podemos rotarlo o añadir timestamp)
+# Para cumplir estrictamente con "cree un nuevo archivo log", si ya existe uno del mismo día, le añadiremos un sufijo de tiempo para no sobrescribir sesiones previas
+if [[ -f "$LOG_FILE" ]]; then
+    mv "$LOG_FILE" "${LOG_FILE%.log}_$(date +%H%M%S).log"
+fi
+
+# Redirigir TODA la salida (stdout y stderr) al log y a la consola
+exec > >(tee -a "$LOG_FILE") 2>&1
+
 log() {
     local level="${2:-INFO}"
     local message="$1"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    local xtrace_state=$(shopt -p -o xtrace)
-    { set +x; } 2>/dev/null
-    echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE" >&2
-    eval "$xtrace_state"
+    # Ya no necesitamos tee aquí porque exec ya se encarga de la redirección global
+    echo "[$timestamp] [$level] $message" >&2
 }
 
 # --- Cleanup Trap ---
@@ -68,8 +77,8 @@ Opciones:
   --hyp HYPERVISOR      Hypervisor: vbox, vmware, qemu (defecto: vbox).
   --ram MB              Cantidad de RAM en MB (defecto: 2048).
   --disk SIZE           Tamaño del disco (ej: 50G) (defecto: 50G).
-  --user USER           Usuario del sistema (defecto: user).
-  --pass PASS           Contraseña del usuario (defecto: password).
+  --user USER           Usuario del sistema (defecto: arbol).
+  --pass PASS           Contraseña del usuario (defecto: tronco).
   --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, none (defecto: none).
   --mirror URL          URL del mirror personalizado.
   --verbose             Activa el modo de depuración (set -x).
@@ -97,8 +106,8 @@ LOCALE=$(echo $LANG | cut -d. -f1).UTF-8
 [[ -z "$LOCALE" || "$LOCALE" == ".UTF-8" ]] && LOCALE="es_ES.UTF-8"
 KEYMAP="es"
 TIMEZONE=$(cat /etc/timezone 2>/dev/null || echo "Europe/Madrid")
-VM_USER="user"
-VM_PASS="password"
+VM_USER=""
+VM_PASS=""
 SELECTED_MIRROR=""
 WALLHAVEN_QUERY=""
 LOCAL_WP_DIR=""
@@ -196,13 +205,13 @@ check_dependencies() {
     
     if [[ ${#missing[@]} -gt 0 ]]; then
         log "Instalando dependencias faltantes: ${missing[*]}" "INFO"
-        sudo apt-get update >> "$LOG_FILE" 2>&1
+        sudo apt-get update
         # Use a more robust install that handles potential package name variations
         for m in "${missing[@]}"; do
             case $m in
-                7z) sudo apt-get install -y p7zip-full >> "$LOG_FILE" 2>&1 || sudo apt-get install -y p7zip >> "$LOG_FILE" 2>&1 ;;
-                rar) sudo apt-get install -y unrar-free >> "$LOG_FILE" 2>&1 || sudo apt-get install -y rar >> "$LOG_FILE" 2>&1 ;;
-                *) sudo apt-get install -y "$m" >> "$LOG_FILE" 2>&1 ;;
+                7z) sudo apt-get install -y p7zip-full || sudo apt-get install -y p7zip ;;
+                rar) sudo apt-get install -y unrar-free || sudo apt-get install -y rar ;;
+                *) sudo apt-get install -y "$m" ;;
             esac
         done
     else
@@ -239,15 +248,18 @@ read -p "Teclado [$KEYMAP]: " input_keymap; [[ -n "$input_keymap" ]] && KEYMAP="
 read -p "Zona Horaria [$TIMEZONE]: " input_tz; [[ -n "$input_tz" ]] && TIMEZONE="$input_tz"
 
 if [[ -z "$VM_USER" ]]; then
-    read -p "¿Usuario/Pass personalizados? (s/n) [n]: " set_auth
-    if [[ "$set_auth" == "s" ]]; then
-        read -p "Usuario: " VM_USER; read -s -p "Contraseña: " VM_PASS; echo ""
+    read -p "¿Desea un usuario y una contraseña personalizada? (s/n) [n]: " set_auth
+    if [[ "$set_auth" == "s" || "$set_auth" == "S" ]]; then
+        read -p "Usuario: " VM_USER
+        read -s -p "Contraseña: " VM_PASS
+        echo ""
     else
-        VM_USER="user"; VM_PASS="password"
+        VM_USER="arbol"
+        VM_PASS="tronco"
     fi
 fi
-[[ -z "$VM_USER" ]] && VM_USER="user"
-[[ -z "$VM_PASS" ]] && VM_PASS="password"
+[[ -z "$VM_USER" ]] && VM_USER="arbol"
+[[ -z "$VM_PASS" ]] && VM_PASS="tronco"
 
 echo "Software Opcional:"
 read -p "Paquetes APT (ej: htop,ncdu): " OPT_APT
@@ -315,15 +327,15 @@ fi
 VM_PATH="$VM_DIR/$NAME"; mkdir -p "$VM_PATH"
 RAW_DISK="$VM_PATH/${NAME}.raw"
 log "Iniciando creación de disco de tamaño $VM_DISK_SIZE..." "INFO"
-qemu-img create -f raw "$RAW_DISK" "$VM_DISK_SIZE" >> "$LOG_FILE" 2>&1
+qemu-img create -f raw "$RAW_DISK" "$VM_DISK_SIZE"
 
 log "Particionando disco con tabla msdos..." "INFO"
-sudo parted -s "$RAW_DISK" mklabel msdos mkpart primary ext4 1M 100% set 1 boot on >> "$LOG_FILE" 2>&1
+sudo parted -s "$RAW_DISK" mklabel msdos mkpart primary ext4 1M 100% set 1 boot on
 LOOP_DEV=$(sudo losetup -Pf --show "$RAW_DISK")
 log "Disco asociado a $LOOP_DEV" "DEBUG"
 PART_DEV="${LOOP_DEV}p1"
 log "Formateando partición $PART_DEV en EXT4..." "INFO"
-sudo mkfs.ext4 "$PART_DEV" >> "$LOG_FILE" 2>&1
+sudo mkfs.ext4 "$PART_DEV"
 
 MOUNT_DIR=$(mktemp -d /tmp/vm_mount.XXXXXX)
 log "Montando sistema de archivos en $MOUNT_DIR..." "DEBUG"
@@ -338,7 +350,7 @@ fi
 
 log "Ejecutando debootstrap (esto puede tardar varios minutos)..." "INFO"
 log "Mirror: $SELECTED_MIRROR | Codename: $OS_CODENAME" "DEBUG"
-sudo debootstrap --arch amd64 "$OS_CODENAME" "$MOUNT_DIR" "$SELECTED_MIRROR" >> "$LOG_FILE" 2>&1
+sudo debootstrap --arch amd64 "$OS_CODENAME" "$MOUNT_DIR" "$SELECTED_MIRROR"
 
 # --- CHROOT CONFIG ---
 log "Preparando fase CHROOT..." "INFO"
@@ -419,10 +431,14 @@ if [[ "$OS" == "debian" && "$HYPERVISOR" == "vbox" ]]; then
     apt-get update
 fi
 
-echo "Creando usuario $VM_USER..."
-useradd -m -s /bin/bash "$VM_USER"
+if id "$VM_USER" &>/dev/null; then
+    echo "El usuario $VM_USER ya existe, actualizando configuración..."
+else
+    echo "Creando usuario $VM_USER..."
+    useradd -m -s /bin/bash "$VM_USER"
+fi
 echo "$VM_USER:$VM_PASS" | chpasswd
-echo "$VM_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$VM_USER
+[[ "$VM_USER" != "root" ]] && echo "$VM_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$VM_USER
 
 echo "Instalando kernel y grub..."
 # Pre-configurar grub-pc
@@ -507,7 +523,7 @@ CHROOT_SCRIPT
 
 UUID=$(sudo blkid -s UUID -o value "$PART_DEV")
 log "UUID de la partición: $UUID" "DEBUG"
-echo "UUID=$UUID / ext4 errors=remount-ro 0 1" | sudo tee "$MOUNT_DIR/etc/fstab" >> "$LOG_FILE" 2>&1
+echo "UUID=$UUID / ext4 errors=remount-ro 0 1" | sudo tee "$MOUNT_DIR/etc/fstab"
 sudo cp "$CONFIG_DIR/$NAME/setup.sh" "$MOUNT_DIR/setup.sh"
 sudo chmod +x "$MOUNT_DIR/setup.sh"
 sudo mkdir -p "$MOUNT_DIR/tmp/wallpapers"
@@ -534,20 +550,20 @@ log "Iniciando fase de conversión de disco para $HYPERVISOR..." "INFO"
 if [[ "$HYPERVISOR" == "vbox" ]]; then
     if command -v VBoxManage &> /dev/null; then
         log "Convirtiendo RAW a VDI..." "DEBUG"
-        VBoxManage convertfromraw "$RAW_DISK" "$VM_PATH/${NAME}.vdi" --format VDI >> "$LOG_FILE" 2>&1
+        VBoxManage convertfromraw "$RAW_DISK" "$VM_PATH/${NAME}.vdi" --format VDI
         log "Registrando máquina virtual en VirtualBox..." "DEBUG"
-        VBoxManage createvm --name "$NAME" --register --basefolder "$(pwd)/$VM_DIR" >> "$LOG_FILE" 2>&1
+        VBoxManage createvm --name "$NAME" --register --basefolder "$(pwd)/$VM_DIR"
         log "Configurando hardware de la VM (RAM: $VM_RAM MB, CPUs: $VM_CPUS)..." "DEBUG"
-        VBoxManage modifyvm "$NAME" --cpus "$VM_CPUS" --memory "$VM_RAM" --vram 128 --graphicscontroller vmsvga --boot1 disk --nic1 nat --mouse usbtablet >> "$LOG_FILE" 2>&1
+        VBoxManage modifyvm "$NAME" --cpus "$VM_CPUS" --memory "$VM_RAM" --vram 128 --graphicscontroller vmsvga --boot1 disk --nic1 nat --mouse usbtablet
         log "Adjuntando disco duro..." "DEBUG"
-        VBoxManage storagectl "$NAME" --name "SATA" --add sata >> "$LOG_FILE" 2>&1
-        VBoxManage storageattach "$NAME" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "$VM_PATH/${NAME}.vdi" >> "$LOG_FILE" 2>&1
+        VBoxManage storagectl "$NAME" --name "SATA" --add sata
+        VBoxManage storageattach "$NAME" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "$VM_PATH/${NAME}.vdi"
     else
         log "VBoxManage no encontrado, saltando registro de VM. El disco está en $RAW_DISK" "WARNING"
     fi
 elif [[ "$HYPERVISOR" == "vmware" ]]; then
     log "Convirtiendo RAW a VMDK..." "DEBUG"
-    qemu-img convert -f raw -O vmdk "$RAW_DISK" "$VM_PATH/${NAME}.vmdk" >> "$LOG_FILE" 2>&1
+    qemu-img convert -f raw -O vmdk "$RAW_DISK" "$VM_PATH/${NAME}.vmdk"
     log "Generando archivo de configuración VMX..." "DEBUG"
     cat <<EOF > "$VM_PATH/${NAME}.vmx"
 .encoding = "UTF-8"
@@ -557,7 +573,7 @@ ethernet0.present = "TRUE"; ethernet0.connectionType = "nat"; ethernet0.virtualD
 EOF
 else
     log "Convirtiendo RAW a QCOW2..." "DEBUG"
-    qemu-img convert -f raw -O qcow2 "$RAW_DISK" "$VM_PATH/${NAME}.qcow2" >> "$LOG_FILE" 2>&1
+    qemu-img convert -f raw -O qcow2 "$RAW_DISK" "$VM_PATH/${NAME}.qcow2"
 fi
 rm -f "$RAW_DISK"
 
@@ -565,9 +581,9 @@ rm -f "$RAW_DISK"
 if [[ "$COMPRESS_FORMAT" != "none" ]]; then
     log "Empaquetando máquina virtual en formato $COMPRESS_FORMAT..." "INFO"
     case $COMPRESS_FORMAT in
-        zip) zip -r "${NAME}.zip" "$VM_PATH" >> "$LOG_FILE" 2>&1 ;;
-        rar) rar a "${NAME}.rar" "$VM_PATH" >> "$LOG_FILE" 2>&1 ;;
-        7z) 7z a "${NAME}.7z" "$VM_PATH" && 7z t "${NAME}.7z" >> "$LOG_FILE" 2>&1 || { log "Error en 7z, usando respaldo ZIP" "WARNING"; zip -r "${NAME}.zip" "$VM_PATH" >> "$LOG_FILE" 2>&1; } ;;
+        zip) zip -r "${NAME}.zip" "$VM_PATH" ;;
+        rar) rar a "${NAME}.rar" "$VM_PATH" ;;
+        7z) 7z a "${NAME}.7z" "$VM_PATH" && 7z t "${NAME}.7z" || { log "Error en 7z, usando respaldo ZIP" "WARNING"; zip -r "${NAME}.zip" "$VM_PATH"; } ;;
     esac
     log "Limpiando archivos temporales de construcción..." "DEBUG"
     rm -rf "$VM_PATH" "$CONFIG_DIR/$NAME"
