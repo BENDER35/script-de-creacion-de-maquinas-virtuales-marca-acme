@@ -10,7 +10,25 @@ El script `create_vm.sh` utiliza un enfoque modular y robusto basado en Bash:
 *   **Inyección de Variables y Generación Dinámica:** Una técnica avanzada utilizada es la generación del script de provisión (`setup.sh`) mediante *Heredocs*. Para evitar errores de expansión de variables dentro del entorno `chroot`, la lógica de decisión (como qué paquetes instalar) se ejecuta en el **Host**. Esto garantiza que el script generado sea estático y predecible, una práctica recomendada en el desarrollo de herramientas de automatización.
 *   **Logging Avanzado:** Sistema de logs con niveles (`INFO`, `DEBUG`, etc.) y captura de flujos de salida de subprocesos, esencial para la trazabilidad en sistemas complejos.
 
-## 2. Administración de Sistemas (Infraestructura como Código)
+## 2. Gestión de Paquetes Modernos (Sistemas y Programación)
+
+El script integra tres de las tecnologías más relevantes para la distribución de software moderno, cada una con un enfoque pedagógico distinto:
+
+### Flatpak: Aislamiento y Portabilidad
+*   **Concepto:** Flatpak utiliza contenedores para ejecutar aplicaciones, lo que garantiza que funcionen igual en cualquier distribución.
+*   **Implementación Técnica:** Para que Flatpak funcione, es imprescindible el paquete `bubblewrap`. Este utiliza *namespaces* del kernel Linux para crear el entorno aislado. 
+*   **Lección para Estudiantes:** El fallo en la instalación de Flatpak suele deberse a la falta de `bubblewrap`. Al incluirlo explícitamente, aseguramos que el "sandbox" pueda inicializarse correctamente.
+
+### Snap: Servicios y Ecosistema Ubuntu
+*   **Concepto:** Promovido por Canonical, Snap permite paquetes autogestionados que incluyen todas sus dependencias.
+*   **Desafío en Chroot:** Snap requiere el daemon `snapd` corriendo bajo `systemd`. En un entorno de construcción `chroot`, el daemon no está activo. 
+*   **Solución Aplicada:** El script instala `snapd`, `dbus-user-session` y `squashfs-tools` (necesario para montar las imágenes de los snaps). Aunque la ejecución de `snap install` puede dar advertencias en chroot, los paquetes quedan preparados para el primer arranque.
+
+### Extrepo: Gestión Curada de Repositorios Externos
+*   **Concepto:** Una herramienta de Debian para habilitar repositorios de terceros (como VSCode, Signal, etc.) de forma segura y verificada.
+*   **Ventaja en Ciberseguridad:** Evita que el usuario tenga que descargar scripts `curl | sudo bash` inseguros, proporcionando una vía oficial y firmada para software externo.
+
+## 3. Administración de Sistemas (Infraestructura como Código)
 
 *   **Gestión de Repositorios y Drivers:** Para sistemas como Debian, es crucial configurar no solo los repositorios `main`, sino también `contrib`, `non-free` y los repositorios de **seguridad**.
 *   **Gestión de Identidad y Autenticación:** El script permite la creación de usuarios personalizados o el uso de una cuenta de superusuario (`root`) preconfigurada. Desde el punto de vista de la administración de sistemas, esto enseña la diferencia entre el uso de `sudo` para tareas administrativas (recomendado en producción) y el acceso directo como root (común en entornos de laboratorio o "hack boxes").

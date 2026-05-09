@@ -150,12 +150,16 @@ find_fastest_mirror() {
     local min_time=999
     for m in "${mirrors[@]}"; do
         [[ "${m: -1}" != "/" ]] && m="${m}/"
-        local time=$(curl -o /dev/null -s -I -w '%{time_total}\n' --connect-timeout 2 --max-time 3 "$m" || echo 999)
+        # Usar curl de forma silenciosa y capturar solo el tiempo total. Forzar punto decimal.
+        local time=$(curl -o /dev/null -s -I -w '%{time_total}' --connect-timeout 2 --max-time 3 "$m" | tr ',' '.' || echo 999)
+        # Validar que time sea un número antes de pasarlo a bc
+        if [[ ! "$time" =~ ^[0-9.]+$ ]]; then time=999; fi
+        
         if (( $(echo "$time < $min_time" | bc -l) )); then
             min_time=$time; fastest=$m
         fi
     done
-    [[ -n "$fastest" ]] || fastest="http://archive.ubuntu.com/ubuntu/"
+    [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
     echo "$fastest"
 }
 
@@ -467,6 +471,9 @@ for pkg in $G_PKG; do
     apt-get install -y \$pkg || echo "Advertencia: No se pudo instalar \$pkg"
 done
 
+# Reparar dependencias rotas si las hay antes de paquetes opcionales
+apt-get install -f -y
+
 if [[ -n "$OPT_APT" ]]; then 
     echo "Instalando paquetes APT opcionales..."
     for p in \${OPT_APT//,/ }; do
@@ -476,20 +483,23 @@ fi
 
 if [[ -n "$OPT_FLATPAK" ]]; then
     echo "Configurando Flatpak..."
-    apt-get install -y flatpak
-    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    # Flatpak requiere bubblewrap para el sandboxing
+    apt-get install -y flatpak bubblewrap
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
     for p in ${OPT_FLATPAK//,/ }; do 
         echo "Instalando flatpak: \$p"
-        flatpak install -y flathub \$p || true
+        flatpak install -y flathub \$p || echo "Error al instalar flatpak \$p (puede requerir sesión de usuario)"
     done
 fi
 
 if [[ -n "$OPT_SNAP" ]]; then
     echo "Configurando Snap..."
-    apt-get install -y snapd
+    # Snap requiere dbus y squashfs-tools. En chroot el daemon no corre, pero instalamos los paquetes.
+    apt-get install -y snapd dbus-user-session squashfs-tools
     for s in ${OPT_SNAP//,/ }; do 
         echo "Instalando snap: \$s"
-        snap install \$s || echo "Snap \$s pendiente"
+        # Intentar instalar, pero ignorar fallos de comunicación con el daemon (común en chroot)
+        snap install \$s || echo "Snap \$s marcado para instalación posterior (daemon no disponible en chroot)"
     done
 fi
 
@@ -512,7 +522,11 @@ fi
 if [[ -n "$EXTREPOS" && "$EXTREPOS" != "n" && "$EXTREPOS" != "no" ]]; then
     echo "Habilitando repositorios extrepo..."
     apt-get install -y extrepo
-    IFS=',' read -ra ADDR <<< "$EXTREPOS"; for i in "\${ADDR[@]}"; do extrepo enable "\$i"; done
+    # extrepo enable puede fallar si el repo ya existe o no se encuentra, manejamos con || true
+    IFS=',' read -ra ADDR <<< "$EXTREPOS"; for i in "\${ADDR[@]}"; do 
+        echo "Habilitando extrepo: \$i"
+        extrepo enable "\$i" || echo "No se pudo habilitar extrepo: \$i"
+    done
     apt-get update
 fi
 

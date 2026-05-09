@@ -24,6 +24,7 @@ Herramienta educativa para la automatización de despliegues Linux mediante `deb
 Este proyecto es un laboratorio de aprendizaje avanzado:
 
 *   **Sistemas:** Particionado de discos, sistemas de archivos (EXT4), montajes de dispositivos loop, gestión de repositorios (`apt`), configuración de locales y zonas horarias, y administración de usuarios.
+*   **Gestión de Software Moderno:** Aprenderás a integrar y solucionar problemas de dependencias en gestores de paquetes de nueva generación como **Flatpak** (aislamiento/sandboxing), **Snap** (servicios) y **Extrepo** (repositorios externos curados).
 *   **Ciberseguridad:** Gestión de repositorios de seguridad, firma de paquetes mediante GPG (método `signed-by`), gestión de identidades y privilegios (`sudo`), y auditoría mediante logs detallados.
 *   **Programación:** Automatización avanzada en Bash, generación dinámica de scripts (Heredocs), manejo de flujos de E/S (redirecciones de descriptores) y control de errores mediante señales (`traps`).
 

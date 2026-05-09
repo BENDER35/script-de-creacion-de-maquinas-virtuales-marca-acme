@@ -34,3 +34,9 @@ Este documento detalla la evolución del script `create_vm.sh` y las tareas real
 *   **12:15** - **Personalización de Credenciales**: Implementación de una nueva funcionalidad en el menú interactivo que permite al usuario elegir entre crear un usuario/contraseña personalizados o usar los valores predeterminados de administración segura (`root`/`toor`).
 *   **12:20** - **Optimización del Setup en Chroot**: Refactorización de la lógica de creación de usuarios para manejar de forma inteligente la existencia previa del usuario (especialmente para el caso de `root`), asegurando que la configuración de `sudoers` y contraseñas sea coherente y segura.
 *   **12:30** - **Actualización Documental Educativa**: Revisión completa de `DOCUMENTACION_TECNICA.md`, `README.md` y la bibliografía para orientarlos específicamente a estudiantes de sistemas, ciberseguridad y programación, integrando conceptos de gestión de identidad y autenticación básica.
+*   **15:45** - **Corrección de Paquetes de Terceros (Flatpak/Snap/Extrepo)**: 
+    *   **Flatpak**: Solución de errores de dependencia mediante la inclusión explícita de `bubblewrap`, esencial para el aislamiento (sandboxing) en entornos modernos.
+    *   **Snap**: Mejora en la instalación de `snapd` mediante la adición de dependencias críticas como `dbus-user-session` y `squashfs-tools`, y manejo elegante de fallos en entornos chroot (donde el daemon de snap no puede ejecutarse).
+    *   **Extrepo**: Refuerzo de la lógica de habilitación de repositorios externos con manejo de errores por repositorio.
+    *   **Robustez de Sistema**: Implementación de `apt-get install -f` automático para reparar posibles corrupciones de paquetes durante la fase de provisión.
+    *   **Optimización de Red**: Corrección de error sintáctico en la selección de mirrors (comparación de punto flotante en Bash) y normalización de locales para asegurar la detección del mirror más rápido.
