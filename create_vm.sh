@@ -563,7 +563,20 @@ if [[ -n "$OPT_FLATPAK" ]]; then
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
     for p in ${OPT_FLATPAK//,/ }; do 
         echo "Instalando flatpak: \$p"
-        flatpak install -y flathub \$p || echo "Error al instalar flatpak \$p (puede requerir sesión de usuario)"
+        # Si el nombre no parece un ID completo (necesita al menos 2 puntos), intentamos buscarlo
+        if [[ "\$p" == *.*.* ]]; then
+            flatpak install -y flathub "\$p" || echo "Error al instalar flatpak \$p"
+        else
+            echo "Buscando ID para \$p..."
+            ID=\$(flatpak search "\$p" | head -n 1 | awk '{print \$2}')
+            if [[ -n "\$ID" ]]; then
+                echo "ID encontrado: \$ID. Instalando..."
+                flatpak install -y flathub "\$ID" || echo "Error al instalar flatpak \$ID"
+            else
+                echo "No se encontró un ID unívoco para \$p, intentando instalación directa..."
+                flatpak install -y flathub "\$p" || echo "Error al instalar flatpak \$p (puede requerir sesión de usuario)"
+            fi
+        fi
     done
 fi
 
@@ -574,7 +587,7 @@ if [[ -n "$OPT_SNAP" ]]; then
     for s in ${OPT_SNAP//,/ }; do 
         echo "Instalando snap: \$s"
         # Intentar instalar, pero ignorar fallos de comunicación con el daemon (común en chroot)
-        snap install \$s || echo "Snap \$s marcado para instalación posterior (daemon no disponible en chroot)"
+        snap install "\$s" || echo "Aviso: Snap \$s no se instaló (el daemon snapd no suele estar activo en chroot). Se intentará en el primer arranque."
     done
 fi
 
@@ -626,7 +639,7 @@ for d in dev dev/pts proc sys run; do
     log "Montando $d..." "DEBUG"
     sudo mount --bind /$d "$MOUNT_DIR/$d"
 done
-sudo chroot "$MOUNT_DIR" /bin/bash /setup.sh "$LOOP_DEV" 2>&1 | tee -a "$LOG_FILE"
+sudo chroot "$MOUNT_DIR" /bin/bash /setup.sh "$LOOP_DEV"
 
 log "Configuración CHROOT finalizada. Limpiando montajes..." "INFO"
 for d in run sys proc dev/pts dev; do 

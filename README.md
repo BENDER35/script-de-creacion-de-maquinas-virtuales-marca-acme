@@ -23,10 +23,10 @@ Herramienta educativa para la automatización de despliegues Linux mediante `deb
 
 Este proyecto es un laboratorio de aprendizaje avanzado, diseñado para cubrir competencias clave en:
 
-*   **Administración de Sistemas (ASIR/SMR):** Configuración de hardware virtual (CPU, RAM, Disco), particionado de discos con `parted`, sistemas de archivos (EXT4), montajes de dispositivos loop, gestión de puntos de montaje y administración de recursos en caliente.
+*   **Administración de Sistemas (ASIR/SMR):** Configuración de hardware virtual (CPU, RAM, Disco), particionado de discos con `parted`, sistemas de archivos (EXT4), montajes de dispositivos loop y auditoría de sistemas mediante logs limpios y trazables.
 *   **Microinformática y Montaje (SMR):** Entenderás el dimensionamiento de máquinas virtuales, la gestión de drivers mediante herramientas de invitado (Guest Tools) y la diferencia entre diversos entornos de escritorio (KDE, XFCE, Cinnamon, Kylin) y sus requisitos de hardware.
-*   **Ciberseguridad:** Gestión de repositorios de seguridad, firma de paquetes mediante GPG (método moderno `signed-by`), gestión de identidades, configuración de privilegios administrativos (`sudo`), auditoría forense mediante logs detallados y endurecimiento (hardening) básico del sistema.
-*   **Programación y Automatización (DAM/DAW):** Desarrollo avanzado en Bash, validación y sanitización de entradas de usuario, generación dinámica de configuraciones (Heredocs), interacción con APIs externas (Wallhaven) y control de flujo mediante señales del sistema (`traps`).
+*   **Ciberseguridad:** Gestión de repositorios de seguridad, firma de paquetes mediante GPG (método moderno `signed-by`), gestión de identidades, configuración de privilegios administrativos (`sudo`) y endurecimiento (hardening) básico del sistema.
+*   **Programación y Automatización (DAM/DAW):** Desarrollo avanzado en Bash, **resolución inteligente de dependencias** (Application ID resolution), validación y sanitización de entradas de usuario, generación dinámica de configuraciones (Heredocs) e interacción con APIs externas.
 *   **Sistemas Modernos:** Integración y resolución de problemas en gestores de paquetes aislados como **Flatpak** (sandboxing), **Snap** y herramientas de gestión de repositorios curados como **Extrepo**.
 
 

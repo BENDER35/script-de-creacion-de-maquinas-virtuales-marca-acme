@@ -17,7 +17,8 @@ El script integra tres de las tecnologías más relevantes para la distribución
 ### Flatpak: Aislamiento y Portabilidad
 *   **Concepto:** Flatpak utiliza contenedores para ejecutar aplicaciones, lo que garantiza que funcionen igual en cualquier distribución.
 *   **Implementación Técnica:** Para que Flatpak funcione, es imprescindible el paquete `bubblewrap`. Este utiliza *namespaces* del kernel Linux para crear el entorno aislado. 
-*   **Lección para Estudiantes:** El fallo en la instalación de Flatpak suele deberse a la falta de `bubblewrap`. Al incluirlo explícitamente, aseguramos que el "sandbox" pueda inicializarse correctamente.
+*   **Resolución de IDs (Programación Robusta):** El script implementa una lógica de resolución de Application IDs. Si el usuario proporciona un nombre corto (ej: `lutris`), el script busca en el repositorio el ID unívoco (ej: `net.lutris.Lutris`) mediante `flatpak search`. Esto evita fallos por nombres de paquetes ambiguos o mal formados.
+*   **Lección para Estudiantes:** La automatización profesional no debe asumir que el usuario conoce el nombre técnico exacto de cada recurso; debe proporcionar capas de abstracción y resolución de errores para ser realmente útil.
 
 ### Snap: Servicios y Ecosistema Ubuntu
 *   **Concepto:** Promovido por Canonical, Snap permite paquetes autogestionados que incluyen todas sus dependencias.
@@ -33,6 +34,7 @@ El script integra tres de las tecnologías más relevantes para la distribución
 *   **Gestión de Repositorios y Drivers:** Para sistemas como Debian, es crucial configurar no solo los repositorios `main`, sino también `contrib`, `non-free` y los repositorios de **seguridad**.
 *   **Gestión de Identidad y Autenticación:** El script permite la creación de usuarios personalizados o el uso de una cuenta de superusuario (`root`) preconfigurada. Desde el punto de vista de la administración de sistemas, esto enseña la diferencia entre el uso de `sudo` para tareas administrativas (recomendado en producción) y el acceso directo como root (común en entornos de laboratorio o "hack boxes").
 *   **Debian Fast Track:** En versiones recientes de Debian (como 12 Bookworm o 13 Trixie), las herramientas de invitado de VirtualBox pueden no estar presentes en los repositorios estándar debido a ciclos de lanzamiento. El script integra automáticamente el repositorio **Fast Track**, un proyecto oficial de Debian que proporciona paquetes actualizados (backports) de software como VirtualBox para garantizar la compatibilidad de drivers.
+*   **Trazabilidad y Auditoría (Logging):** El script utiliza un sistema de logging avanzado que evita la redundancia de datos. La eliminación de tuberías de salida duplicadas en la fase de `chroot` asegura que los informes de auditoría sean limpios y legibles, una habilidad fundamental en la administración de servidores en producción.
 *   **Repositorio Backports:** Requisito indispensable para Fast Track. El script habilita automáticamente los backports oficiales de Debian para asegurar que las dependencias de bajo nivel estén satisfechas.
 *   **Compilación de Módulos (DKMS):** El script automatiza la instalación de `linux-headers`, `build-essential` y `dkms` cuando se detecta VirtualBox. Esto es vital para que los drivers del invitado se compilen correctamente contra el kernel instalado en el entorno `chroot`.
 
@@ -123,15 +125,16 @@ Para estudiantes de **Microinformática** y **Sistemas**, entender la asignació
 
 ### Documentación Oficial y Técnica:
 1.  **Debian Fast Track Project:** [Paquetes actualizados para Debian Stable](https://fasttrack.debian.net/).
-2.  **Debian Wiki - VirtualBox Guest Additions:** [Guía oficial de instalación](https://wiki.debian.org/VirtualBox/GuestAdditions).
-3.  **Debian debootstrap Wiki:** [Creación de sistemas base](https://wiki.debian.org/Debootstrap).
-4.  **Apt-Key Deprecation:** [Explicación sobre el fin de apt-key y el uso de signed-by](https://wiki.debian.org/DebianRepository/UseThirdParty).
-5.  **GNU Privacy Guard (GnuPG):** [Manual oficial de GPG](https://gnupg.org/documentation/manuals/gnupg/).
-6.  **DKMS Project Documentation:** [Dynamic Kernel Module Support](https://github.com/dell/dkms).
-7.  **Linux Kernel Headers:** [Por qué son necesarios para compilar módulos](https://kernelnewbies.org/KernelHeaders).
-8.  **Bash Manual - Redirections:** [Explicación detallada de descriptores de archivo y pipes](https://www.gnu.org/software/bash/manual/html_node/Redirections.html).
-9.  **QEMU Documentation:** [Formatos de imagen de disco](https://www.qemu.org/docs/master/system/images.html).
-10. **Ubuntu Kylin Official:** [Página del proyecto Ubuntu Kylin](https://www.ubuntukylin.com/).
+2.  **Flatpak Documentation:** [Entendiendo Application IDs y remotes](https://docs.flatpak.org/en/latest/flatpak-command-reference.html).
+3.  **Debian Wiki - VirtualBox Guest Additions:** [Guía oficial de instalación](https://wiki.debian.org/VirtualBox/GuestAdditions).
+4.  **Debian debootstrap Wiki:** [Creación de sistemas base](https://wiki.debian.org/Debootstrap).
+5.  **Apt-Key Deprecation:** [Explicación sobre el fin de apt-key y el uso de signed-by](https://wiki.debian.org/DebianRepository/UseThirdParty).
+6.  **GNU Privacy Guard (GnuPG):** [Manual oficial de GPG](https://gnupg.org/documentation/manuals/gnupg/).
+7.  **DKMS Project Documentation:** [Dynamic Kernel Module Support](https://github.com/dell/dkms).
+8.  **Linux Kernel Headers:** [Por qué son necesarios para compilar módulos](https://kernelnewbies.org/KernelHeaders).
+9.  **Bash Manual - Redirections:** [Explicación detallada de descriptores de archivo y pipes](https://www.gnu.org/software/bash/manual/html_node/Redirections.html).
+10. **QEMU Documentation:** [Formatos de imagen de disco](https://www.qemu.org/docs/master/system/images.html).
+11. **Ubuntu Kylin Official:** [Página del proyecto Ubuntu Kylin](https://www.ubuntukylin.com/).
 
 ### Administración de Usuarios y Seguridad:
 11. **Debian Wiki - SystemGroups:** [Entendiendo los grupos y privilegios en Debian](https://wiki.debian.org/SystemGroups).

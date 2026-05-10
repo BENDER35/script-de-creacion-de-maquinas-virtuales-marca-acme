@@ -68,3 +68,9 @@ Este documento detalla la evolución del script `create_vm.sh` y las tareas real
     *   **Interfaz**: Actualización del menú de selección de escritorio para incluir Kylin y reajuste de las opciones predeterminadas.
     *   **Contenido Educativo**: Reestructuración profunda de `README.md`, `DOCUMENTACION_TECNICA.md` y la bibliografía para servir como material didáctico en cursos de Sistemas, Seguridad, Programación y Microinformática (SMR/ASIR).
     *   **Enfoque en Microinformática**: Inclusión de secciones específicas sobre montaje de sistemas operativos y gestión de entornos de escritorio.
+
+*   **17:00** - **Optimización de Instalación de Paquetes y Logging**:
+    *   **Flatpak**: Implementación de resolución inteligente de Application IDs. El script ahora busca el ID completo (ej: `net.lutris.Lutris`) si se proporciona un nombre corto, evitando errores de validación de Flatpak.
+    *   **Logging**: Eliminación de redundancias que causaban entradas dobles en los informes de instalación.
+    *   **Snap**: Mejora en el feedback sobre la instalación en entornos chroot, aclarando el estado de los paquetes para el primer arranque.
+    *   **Robustez en Provisión**: Corrección de escapes de variables en la generación dinámica de `setup.sh` para asegurar una ejecución fiable dentro del chroot.
