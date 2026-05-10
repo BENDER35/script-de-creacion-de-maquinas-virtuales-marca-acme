@@ -1,49 +1,43 @@
-# Creador de Máquinas Virtuales Marca Acme
+# VM-Acme: Generador de Laboratorios Virtuales
 
-Herramienta educativa para la automatización de despliegues Linux mediante `debootstrap` y `chroot`. Ideal para estudiantes de ciclos formativos de Grado Medio (SMR), Superior (ASIR/DAM/DAW) o autodidactas en los ámbitos de **Sistemas**, **Ciberseguridad** y **Programación**.
+![Version](https://img.shields.io/badge/version-1.2.5-blue.svg)
+![Field](https://img.shields.io/badge/fines-Educativos/Sistemas/Ciberseguridad-green.svg)
 
-## 🚀 Inicio Rápido
+Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) personalizadas de forma totalmente automatizada. Es ideal para estudiantes y profesionales de:
+*   **Sistemas y Microinformática:** Entender el proceso de despliegue de SO desde cero (`debootstrap`).
+*   **Ciberseguridad:** Crear sandboxes rápidos para análisis de malware o laboratorios de pentesting.
+*   **Programación:** Configurar entornos de desarrollo limpios y replicables.
 
-1. **Clonar y dar permisos:**
-   ```bash
-   chmod +x create_vm.sh
-   ```
+## 🚀 Características Principales
+*   **Automático:** De la ISO al disco virtual sin intervención manual.
+*   **Personalizable:** Selección de escritorio, software (APT, Flatpak, Snap) y wallpapers.
+*   **Resiliente:** Mecanismos internos para reparar dependencias y configurar entornos chroot.
+*   **Multi-Hypervisor:** Soporta VirtualBox, VMware y QEMU/KVM.
 
-2. **Ejecutar con ayuda para ver opciones:**
-   ```bash
-   sudo ./create_vm.sh --help
-   ```
+## 🛠️ Uso para Estudiantes
+Para iniciar la construcción de tu laboratorio, ejecuta:
+```bash
+sudo ./create_vm.sh
+```
+El script te guiará mediante un asistente interactivo.
 
-3. **Ejemplo de creación robusta (Laboratorio de Sistemas/Microinformática):**
-   ```bash
-   sudo ./create_vm.sh --name "aula_mate" --os ubuntu --desktop mate --ram 4096 --disk 80G --cpucores 2
-   ```
+## 📚 Bibliografía y Recursos de Aprendizaje
+Para profundizar en las tecnologías que utiliza este script, recomendamos:
 
-## 📚 Lo que aprenderás usando este script
+### Sistemas Operativos y Despliegue
+1.  **Debian Handbook:** La guía definitiva sobre la administración de Debian. [debian.org/doc/manuals/debian-handbook](https://www.debian.org/doc/manuals/debian-handbook/index.es.html)
+2.  **Debootstrap Wiki:** Entender cómo se construye un sistema base. [wiki.debian.org/Debootstrap](https://wiki.debian.org/Debootstrap)
 
-Este proyecto es un laboratorio de aprendizaje avanzado, diseñado para cubrir competencias clave en:
+### Automatización y Scripting
+3.  **Advanced Bash-Scripting Guide:** Para entender el uso de Heredocs y automatización de procesos. [tldp.org/LDP/abs/html/](https://tldp.org/LDP/abs/html/)
+4.  **Chroot & Jail Environments:** Conceptos de aislamiento en Linux.
 
-*   **Administración de Sistemas (ASIR/SMR):** Configuración de hardware virtual (CPU, RAM, Disco), particionado de discos con `parted`, sistemas de archivos (EXT4), montajes de dispositivos loop y auditoría de sistemas mediante logs limpios y trazables.
-*   **Microinformática y Montaje (SMR):** Entenderás el dimensionamiento de máquinas virtuales, la gestión de drivers mediante herramientas de invitado (Guest Tools) y la diferencia entre diversos entornos de escritorio (KDE, XFCE, Cinnamon, Kylin, MATE) y sus requisitos de hardware.
-*   **Ciberseguridad:** Gestión de repositorios de seguridad, firma de paquetes mediante GPG (método moderno `signed-by`), gestión de identidades, configuración de privilegios administrativos (`sudo`) y endurecimiento (hardening) básico del sistema.
-*   **Programación y Automatización (DAM/DAW):** Desarrollo avanzado en Bash, **resolución inteligente de dependencias** (Application ID resolution), validación y sanitización de entradas de usuario, generación dinámica de configuraciones (Heredocs) e interacción con APIs externas. Además, aprenderás sobre **User Experience (UX) en CLI** mediante la creación de menús flexibles con entradas opcionales y lógica de confirmación de riesgos.
-*   **Sistemas Modernos:** Integración y resolución de problemas en gestores de paquetes aislados como **Flatpak** (sandboxing), **Snap** y herramientas de gestión de repositorios curados como **Extrepo**.
+### Microinformática y Virtualización
+5.  **VirtualBox SDK & VBoxManage:** Documentación oficial para automatizar VMs.
+6.  **QEMU Documentation:** Manejo de formatos de disco (RAW, QCOW2, VMDK).
 
-
-## 📊 Gestión de Identidad y Auditoría
-
-El script integra conceptos fundamentales de seguridad:
-*   **Credenciales Flexibles:** Puedes optar por un usuario personalizado para aprender sobre permisos `sudo`, o utilizar el modo de administración clásico `root/toor` común en laboratorios de seguridad.
-*   **Logging de Transparencia Total:** Cada ejecución genera un informe detallado llamado `informe_imp_maqvirt(DD-MM-AAAA).log`. Esto permite a los estudiantes auditar cada paso del proceso de construcción, una habilidad esencial para el cumplimiento normativo y la respuesta ante incidentes.
-
-## 📖 Documentación Completa y Formación
-
-Este proyecto no es solo un script, es un recurso didáctico integral que incluye:
-1.  **Sistemas**: Explicación de la arquitectura de despliegue y drivers mediante DKMS.
-2.  **Ciberseguridad**: Guía sobre la gestión de llaves GPG y seguridad en el aprovisionamiento.
-3.  **Programación**: Mejores prácticas en el desarrollo de herramientas de infraestructura como código (IaC).
-
-Para una explicación técnica profunda, el uso del repositorio **Debian Fast Track** y una bibliografía educativa exhaustiva con más de 20 recursos profesionales, consulta el archivo [DOCUMENTACION_TECNICA.md](DOCUMENTACION_TECNICA.md).
+## 🛡️ Notas de Ciberseguridad
+Este script genera usuarios con permisos `sudo` sin contraseña por defecto para facilitar el aprendizaje. **No utilices estas imágenes en entornos de producción expuestos a internet sin endurecer primero las políticas de seguridad.**
 
 ---
-*Proyecto creado con fines educativos para potenciar el conocimiento en administración de sistemas, ciberseguridad y desarrollo de herramientas de automatización.*
+*Desarrollado como herramienta de apoyo para el aprendizaje de administración de sistemas y redes.*

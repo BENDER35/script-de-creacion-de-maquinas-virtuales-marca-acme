@@ -1,183 +1,56 @@
 # Documentación Técnica: Automatización de Infraestructura (Marca Acme)
 
-Esta documentación está diseñada para estudiantes de **Sistemas**, **Ciberseguridad** y **Programación** que deseen entender cómo orquestar la creación de entornos Linux de forma profesional.
+Esta documentación está diseñada para estudiantes de **Sistemas**, **Ciberseguridad**, **Programación** y **Microinformática** que deseen entender cómo orquestar la creación de entornos Linux de forma profesional y resiliente.
 
-## 1. Arquitectura del Script (Perspectiva de Programación)
+## 1. Arquitectura y Robustez (v1.2.5)
 
-El script `create_vm.sh` utiliza un enfoque modular y robusto basado en Bash:
+El script `create_vm.sh` ha evolucionado para incluir mecanismos de "autocuración" y preparación de entornos minimalistas:
 
-*   **Gestión de Errores (Error Handling):** Se utiliza `set -e` y `set -o pipefail` para detener la ejecución ante cualquier fallo, y un `trap` de limpieza (`cleanup`) para liberar recursos (montajes, dispositivos loop).
-*   **Inyección de Variables y Generación Dinámica:** Una técnica avanzada utilizada es la generación del script de provisión (`setup.sh`) mediante *Heredocs*. Para evitar errores de expansión de variables dentro del entorno `chroot`, la lógica de decisión (como qué paquetes instalar) se ejecuta en el **Host**. Esto garantiza que el script generado sea estático y predecible, una práctica recomendada en el desarrollo de herramientas de automatización.
-*   **Logging Avanzado:** Sistema de logs con niveles (`INFO`, `DEBUG`, etc.) y captura de flujos de salida de subprocesos, esencial para la trazabilidad en sistemas complejos.
+*   **Inyección de Variables y Generación Dinámica:** Se utiliza la técnica de *Heredocs* para generar `setup.sh`. En la versión 1.2.5, se ha corregido un bug crítico de expansión de variables. Ahora, las listas de paquetes (`$OPT_APT`, `$G_PKG`) se inyectan correctamente desde el host al script de chroot, permitiendo una personalización real del software.
+*   **Preparación del Entorno Mínimo:** Dado que `debootstrap` crea un sistema extremadamente base, el script ahora pre-crea estructuras de directorios críticas (ej. `/etc/initramfs-tools/conf.d`). Esto evita que los scripts de post-instalación de paquetes como Plymouth (temas de arranque) fallen al no encontrar rutas esperadas.
+*   **Recuperación Automática:** Se implementa `dpkg --configure -a` de forma estratégica. Esto asegura que si una instalación de entorno de escritorio pesado deja paquetes a medio configurar, el sistema intente repararlos antes de proceder con el software opcional.
 
-## 2. Gestión de Paquetes Modernos (Sistemas y Programación)
+## 2. Gestión de Paquetes Modernos
 
-El script integra tres de las tecnologías más relevantes para la distribución de software moderno, cada una con un enfoque pedagógico distinto:
+El script integra tres de las tecnologías más relevantes para la distribución de software moderno:
 
 ### Flatpak: Aislamiento y Portabilidad
-*   **Concepto:** Flatpak utiliza contenedores para ejecutar aplicaciones, lo que garantiza que funcionen igual en cualquier distribución.
-*   **Implementación Técnica:** Para que Flatpak funcione, es imprescindible el paquete `bubblewrap`. Este utiliza *namespaces* del kernel Linux para crear el entorno aislado. 
-*   **Resolución de IDs (Programación Robusta):** El script implementa una lógica de resolución de Application IDs. Si el usuario proporciona un nombre corto (ej: `lutris`), el script busca en el repositorio el ID unívoco (ej: `net.lutris.Lutris`) mediante `flatpak search`. Esto evita fallos por nombres de paquetes ambiguos o mal formados.
-*   **Lección para Estudiantes:** La automatización profesional no debe asumir que el usuario conoce el nombre técnico exacto de cada recurso; debe proporcionar capas de abstracción y resolución de errores para ser realmente útil.
+*   **Concepto:** Utiliza contenedores y *namespaces* del kernel para ejecutar aplicaciones aisladas.
+*   **Implementación Técnica:** Requiere `bubblewrap` para el sandboxing. El script automatiza la resolución de IDs completos (ej: `net.lutris.Lutris`) a partir de nombres cortos.
 
 ### Snap: Servicios y Ecosistema Ubuntu
-*   **Concepto:** Promovido por Canonical, Snap permite paquetes autogestionados que incluyen todas sus dependencias.
-*   **Desafío en Chroot:** Snap requiere el daemon `snapd` corriendo bajo `systemd`. En un entorno de construcción `chroot`, el daemon no está activo. 
-*   **Solución Aplicada:** El script instala `snapd`, `dbus-user-session` y `squashfs-tools` (necesario para montar las imágenes de los snaps). Aunque la ejecución de `snap install` puede dar advertencias en chroot, los paquetes quedan preparados para el primer arranque.
+*   **Concepto:** Paquetes autogestionados por Canonical que incluyen todas sus dependencias.
+*   **Desafío en Chroot:** Snap requiere el daemon `snapd`. Aunque en chroot no puede correr, el script pre-instala las dependencias necesarias (`dbus-user-session`, `squashfs-tools`) para que el sistema esté listo tras el primer reinicio.
 
-### Extrepo: Gestión Curada de Repositorios Externos
-*   **Concepto:** Una herramienta de Debian para habilitar repositorios de terceros (como VSCode, Signal, etc.) de forma segura y verificada.
-*   **Ventaja en Ciberseguridad:** Evita que el usuario tenga que descargar scripts `curl | sudo bash` inseguros, proporcionando una vía oficial y firmada para software externo.
+### Extrepo: Gestión Curada (Debian)
+*   **Concepto:** Herramienta oficial para habilitar repositorios de terceros de forma segura, evitando scripts `curl | sudo bash` inseguros.
 
-## 3. Administración de Sistemas (Infraestructura como Código)
+## 3. Seguridad y Confianza (Ciberseguridad)
 
-*   **Gestión de Repositorios y Drivers:** Para sistemas como Debian, es crucial configurar no solo los repositorios `main`, sino también `contrib`, `non-free` y los repositorios de **seguridad**.
-*   **Gestión de Identidad y Autenticación:** El script permite la creación de usuarios personalizados o el uso de una cuenta de superusuario (`root`) preconfigurada. Desde el punto de vista de la administración de sistemas, esto enseña la diferencia entre el uso de `sudo` para tareas administrativas (recomendado en producción) y el acceso directo como root (común en entornos de laboratorio o "hack boxes").
-*   **Debian Fast Track:** En versiones recientes de Debian (como 12 Bookworm o 13 Trixie), las herramientas de invitado de VirtualBox pueden no estar presentes en los repositorios estándar debido a ciclos de lanzamiento. El script integra automáticamente el repositorio **Fast Track**, un proyecto oficial de Debian que proporciona paquetes actualizados (backports) de software como VirtualBox para garantizar la compatibilidad de drivers.
-*   **Trazabilidad y Auditoría (Logging):** El script utiliza un sistema de logging avanzado que evita la redundancia de datos. La eliminación de tuberías de salida duplicadas en la fase de `chroot` asegura que los informes de auditoría sean limpios y legibles, una habilidad fundamental en la administración de servidores en producción.
-*   **Repositorio Backports:** Requisito indispensable para Fast Track. El script habilita automáticamente los backports oficiales de Debian para asegurar que las dependencias de bajo nivel estén satisfechas.
-*   **Compilación de Módulos (DKMS):** El script automatiza la instalación de `linux-headers`, `build-essential` y `dkms` cuando se detecta VirtualBox. Esto es vital para que los drivers del invitado se compilen correctamente contra el kernel instalado en el entorno `chroot`.
+### Gestión de llaves GPG
+La autenticidad de los paquetes se garantiza mediante criptografía de clave pública. El script utiliza el método moderno **Manual (signed-by)**:
+1.  Se descarga la llave y se guarda en `/usr/share/keyrings/`.
+2.  Se vincula la llave específicamente al archivo `.list` del repositorio.
+3.  **Lección:** Esto aplica el principio de mínimo privilegio, evitando que una llave de un repositorio de terceros pueda validar paquetes del repositorio oficial del sistema.
 
-## 3. Seguridad y Confianza: Gestión de Llaves GPG y Credenciales
+## 4. Bibliografía y Recursos Educativos
 
-### Gestión de Credenciales (Ciberseguridad):
-En un entorno de aprendizaje de ciberseguridad, el manejo de credenciales es crítico:
-*   **Aprovisionamiento Seguro:** El script utiliza `chpasswd` para establecer contraseñas de forma no interactiva dentro del chroot. Esto evita que las contraseñas aparezcan en el historial de comandos del sistema invitado.
-*   **Principio de Mínimo Privilegio:** Cuando se crea un usuario normal, se le otorgan permisos de `sudo` sin contraseña para facilitar el aprendizaje, pero se documenta que en entornos reales esto debe ser restringido.
-*   **Uso de root/toor:** La opción por defecto `root/toor` es una convención clásica en distribuciones de seguridad (como Kali Linux en sus inicios), permitiendo a los estudiantes enfocarse en la herramienta antes que en la gestión de permisos.
+### Sistemas Operativos y Despliegue
+1.  **The Debian Administrator's Handbook:** [Guía imprescindible sobre gestión de paquetes](https://debian-handbook.info/).
+2.  **Debian Wiki - debootstrap:** [Cómo construir sistemas base](https://wiki.debian.org/Debootstrap).
+3.  **Linux Filesystem Hierarchy Standard (FHS):** [Estructura de directorios en Linux](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html).
 
-### Gestión de llaves GPG (Educativo):
-La autenticidad de los paquetes se garantiza mediante criptografía de clave pública (GPG). Cuando añadimos un repositorio externo como **Fast Track**, debemos "decirle" a APT que confíe en él.
+### Automatización y Programación
+4.  **Google Shell Style Guide:** [Estándares profesionales en Bash](https://google.github.io/styleguide/shellguide.html).
+5.  **Pure Bash Bible:** [Técnicas avanzadas sin dependencias externas](https://github.com/dylanaraps/pure-bash-bible).
+6.  **Bash Pitfalls:** [Errores comunes y cómo evitarlos](https://mywiki.wooledge.org/BashPitfalls).
 
-#### Métodos para agregar llaves GPG (Educativo):
+### Ciberseguridad
+7.  **Apt-Key Deprecation:** [Por qué no usar apt-key y usar signed-by](https://wiki.debian.org/DebianRepository/UseThirdParty).
+8.  **NIST SP 800-92:** [Guía para la gestión de logs y auditoría](https://csrc.nist.gov/publications/detail/sp/800-92/final).
+9.  **OWASP Input Validation:** [Importancia de sanitizar las entradas del usuario](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html).
 
-1.  **Añadido Manual (Recomendado/Moderno):**
-    *   **Proceso:** Se descarga la llave pública, se desprotege (`gpg --dearmor`) y se guarda en `/usr/share/keyrings/`.
-    *   **Ventaja:** Permite usar la opción `[signed-by=...]` en el archivo `.list`, lo que limita la confianza de esa llave *solo* a ese repositorio específico (principio de mínimo privilegio).
-    *   **Ejemplo en el script:** `wget -qO- [URL_KEY] | gpg --dearmor -o /usr/share/keyrings/mi-repo.gpg`
-
-2.  **Paquete de Keyring (Oficial):**
-    *   **Proceso:** Instalar un paquete `.deb` que contiene las llaves (ej: `fasttrack-archive-keyring`).
-    *   **Ventaja:** Las llaves se actualizan automáticamente cuando el proyecto las renueva a través de `apt upgrade`.
-
-3.  **Método Heredado (Deprecated):**
-    *   **Comando:** `apt-key add`.
-    *   **Riesgo:** Añade la llave a un llavero global compartido (`/etc/apt/trusted.gpg`), lo que significa que esa llave podría validar paquetes de *cualquier* repositorio, comprometiendo la seguridad global si la llave es vulnerada.
-
-## 4. Validación de Entradas y Robustez (Programación y Sistemas)
-
-En el desarrollo de herramientas de automatización, la validación de la entrada del usuario es un pilar fundamental tanto para la **Programación** (evitar bugs) como para la **Ciberseguridad** (evitar inyecciones o estados inesperados).
-
-### Validación de Unidades de Almacenamiento
-*   **Problema Detectado:** Herramientas como `qemu-img` interpretan valores numéricos puros como bytes. Si un usuario introduce "70" esperando Gigabytes, se crea un archivo de 70 bytes, lo que provoca fallos catastróficos en el particionado.
-*   **Solución Técnica:** El script implementa una expresión regular (`^[0-9]+$`) para detectar entradas sin sufijo. Si se detecta un número puro, el script realiza una **asunción segura** y añade el sufijo "G".
-*   **Lección para Estudiantes:** Siempre se debe validar que los datos de entrada cumplan con el formato esperado por las herramientas de bajo nivel para garantizar la estabilidad del sistema.
-
-### Sanitización de Consultas API
-*   **Problema Detectado:** Al procesar listas separadas por comas, es común que se introduzcan saltos de línea o espacios accidentales. Al codificar estos caracteres para una URL (URL Encoding), un salto de línea se convierte en `%0A`, lo que invalida la consulta a la API de Wallhaven.
-*   **Solución Técnica:** Se utiliza `xargs` para limpiar espacios en blanco y `echo -n` para asegurar que el flujo hacia `jq` no contenga caracteres de control invisibles.
-*   **Lección para Estudiantes:** La sanitización de flujos de datos es crítica cuando se interactúa con servicios externos (APIs) para prevenir comportamientos erráticos.
-
-## 5. debootstrap y Repositorios con Firma
-
-Cuando usamos `debootstrap` para crear una máquina desde cero, el comando verifica la firma del repositorio principal usando el llavero del sistema host (`/usr/share/keyrings/debian-archive-keyring.gpg`).
-
-Si quisiéramos incluir un repositorio externo *durante* el proceso inicial de debootstrap (antes del chroot), podríamos usar la opción:
-`--keyring=/ruta/a/mi/llave.gpg`
-
-Sin embargo, la práctica estándar en despliegues automatizados es realizar un bootstrap mínimo y configurar los repositorios adicionales en la fase de **provisión** (dentro del chroot), como hace nuestro script.
-
-## 5. Guía de Uso por Parámetros
-
-```bash
-sudo ./create_vm.sh --name "servidor_web" --os debian --ram 1024 --desktop none --verbose
-```
-
-### Tabla de Parámetros:
-| Parámetro | Descripción | Defecto |
-| :--- | :--- | :--- |
-| `--name` | Nombre de la máquina virtual | acme\_vm\_[timestamp] |
-| `--os` | Distribución (ubuntu/debian) | ubuntu |
-| `--hyp` | Hypervisor (vbox/vmware/qemu) | vbox |
-| `--ram` | Memoria RAM en Megabytes | 2048 |
-| `--disk` | Tamaño del disco (ej: 50G) | 50G |
-| `--cpucores` | Número de núcleos de CPU | 2 |
-| `--desktop` | Entorno de escritorio | none |
-
-## 6. Personalización de Hardware y Sabores (Sistemas y Microinformática)
-
-Para estudiantes de **Microinformática** y **Sistemas**, entender la asignación de recursos es fundamental:
-*   **Gestión de CPUs:** El parámetro `--cpucores` permite simular entornos multiprocesador, permitiendo estudiar el rendimiento de aplicaciones multihilo en sistemas Linux.
-*   **Dimensionamiento de Recursos:** La capacidad de definir el RAM y el Disco desde el menú interactivo enseña a los estudiantes a equilibrar las necesidades del sistema operativo con los recursos físicos disponibles en el host.
-*   **Edubuntu, Cinnamon, Kylin y MATE (Sabores):** La inclusión del sabor educativo **Edubuntu** (`gnome(edub.)`), el elegante entorno **Cinnamon** (`cinnamon(ub)`), el sabor orientado a la comunidad china **Ubuntu Kylin** (`kylin`) y el clásico **Ubuntu MATE** (`mate`) permite a los estudiantes comparar diferentes paradigmas de escritorio, localizaciones y requisitos de recursos en sistemas modernos.
-
-### Gestión de Riesgos y Ciclo de Vida (MATE)
-La inclusión de Ubuntu MATE introduce un concepto avanzado en la administración de sistemas: la **gestión de la obsolescencia y el riesgo de soporte**. 
-*   **Aviso Preventivo:** Al seleccionar MATE, el script presenta un aviso sobre la reestructuración del equipo de desarrollo y la incertidumbre sobre su permanencia en el catálogo de Canonical.
-*   **Decisión Informada:** Esto enseña a los estudiantes que la elección de una pila tecnológica no solo depende de sus funciones técnicas, sino también de la salud del proyecto y el soporte a largo plazo (LTS).
-
-## 8. Diseño de Interfaces CLI Amigables (Programación y UX)
-
-Un buen script de automatización debe ser flexible. Las mejoras en el menú interactivo demuestran principios de **User Experience (UX) en la terminal**:
-*   **Entradas Opcionales:** Permitir que campos como paquetes APT, Snap o Flatpak sean omitidos (presionando Enter) evita que el usuario se sienta forzado a tomar decisiones no planificadas, manteniendo la fluidez del script.
-*   **Bucles de Retroalimentación:** La lógica de confirmación en la opción MATE permite al usuario "arrepentirse" y volver al menú anterior sin tener que reiniciar todo el script, una práctica recomendada para minimizar la frustración del usuario.
-
-## 9. Registro de Cambios (Changelog Educativo)
-
-*   **v1.9 - Ubuntu MATE y UX Avanzada:** Integración del sabor MATE con sistema de advertencia de ciclo de vida y optimización de la flexibilidad en el menú interactivo para una mejor experiencia de usuario.
-*   **v1.8 - Integración de Ubuntu Kylin:** Incorporación del sabor Ubuntu Kylin (`ubuntukylin-desktop`), ampliando el abanico de pruebas de compatibilidad y entornos de escritorio internacionales.
-*   **v1.7 - Soporte para Ubuntu Cinnamon:** Integración del entorno de escritorio Cinnamon para Ubuntu, mejorando la oferta de sabores disponibles para laboratorios de microinformática.
-*   **v1.6 - Personalización de Hardware:** Introducción de control sobre núcleos de CPU, RAM y tamaño de disco, junto con soporte para el sabor educativo Edubuntu.
-*   **v1.5 - Gestión de Identidades:** Implementación de selección dinámica de credenciales (Usuario/Pass vs root/toor) con lógica de detección de usuarios existentes.
-*   **v1.4 - Transparencia Total:** Implementación de logging global mediante redirección de descriptores de archivo. Los logs ahora incluyen fecha en el nombre y rotación automática para sesiones múltiples.
-*   **v1.3 - Refuerzo de Seguridad GPG:** Implementación del método `signed-by` para el repositorio Fast Track. Se añadió soporte para `gnupg` en el entorno chroot.
-*   **v1.2 - Integración Fast Track:** Solución para la instalación de VirtualBox Guest Tools en Debian mediante el repositorio `fasttrack.debian.net`.
-
-## 7. Bibliografía y Recursos Educativos Ampliados
-
-### Documentación Oficial y Técnica:
-1.  **Debian Fast Track Project:** [Paquetes actualizados para Debian Stable](https://fasttrack.debian.net/).
-2.  **Flatpak Documentation:** [Entendiendo Application IDs y remotes](https://docs.flatpak.org/en/latest/flatpak-command-reference.html).
-3.  **Debian Wiki - VirtualBox Guest Additions:** [Guía oficial de instalación](https://wiki.debian.org/VirtualBox/GuestAdditions).
-4.  **Debian debootstrap Wiki:** [Creación de sistemas base](https://wiki.debian.org/Debootstrap).
-5.  **Apt-Key Deprecation:** [Explicación sobre el fin de apt-key y el uso de signed-by](https://wiki.debian.org/DebianRepository/UseThirdParty).
-6.  **GNU Privacy Guard (GnuPG):** [Manual oficial de GPG](https://gnupg.org/documentation/manuals/gnupg/).
-7.  **DKMS Project Documentation:** [Dynamic Kernel Module Support](https://github.com/dell/dkms).
-8.  **Linux Kernel Headers:** [Por qué son necesarios para compilar módulos](https://kernelnewbies.org/KernelHeaders).
-9.  **Bash Manual - Redirections:** [Explicación detallada de descriptores de archivo y pipes](https://www.gnu.org/software/bash/manual/html_node/Redirections.html).
-10. **QEMU Documentation:** [Formatos de imagen de disco](https://www.qemu.org/docs/master/system/images.html).
-11. **Ubuntu Kylin Official:** [Página del proyecto Ubuntu Kylin](https://www.ubuntukylin.com/).
-12. **Ubuntu MATE Project:** [Sitio oficial de la comunidad Ubuntu MATE](https://ubuntu-mate.org/).
-13. **Command Line Interface Guidelines:** [Mejores prácticas para el diseño de herramientas CLI](https://clig.dev/).
-
-### Administración de Usuarios y Seguridad:
-11. **Debian Wiki - SystemGroups:** [Entendiendo los grupos y privilegios en Debian](https://wiki.debian.org/SystemGroups).
-12. **Sudoers Manual:** [Configuración avanzada del archivo sudoers](https://www.sudo.ws/docs/man/sudoers.man/).
-13. **Shadow Passwords:** [Cómo Linux gestiona las contraseñas de forma segura](https://tldp.org/HOWTO/Shadow-Password-HOWTO.html).
-14. **The Linux Documentation Project - Security Guide:** [Principios de seguridad en Linux](https://tldp.org/LDP/sag/html/index.html).
-
-### Auditoría y Ciberseguridad:
-15. **NIST SP 800-92:** [Guía para la gestión de logs en seguridad informática](https://csrc.nist.gov/publications/detail/sp/800-92/final).
-16. **OWASP - Logging Cheat Sheet:** [Buenas prácticas de logging para seguridad](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Vocabulary_Cheat_Sheet.html).
-17. **CIS Benchmarks for Linux:** [Estándares de endurecimiento de sistemas](https://www.cisecurity.org/benchmarks/).
-
-### Recursos para Estudiantes (SMR/ASIR/DAM):
-18. **The Debian Administrator's Handbook:** [Gestión de paquetes y repositorios (Imprescindible)](https://debian-handbook.info/).
-19. **Google Shell Style Guide:** [Estándares de programación profesional en Bash](https://google.github.io/styleguide/shellguide.html).
-20. **Infrastructure as Code (IaC) Patterns:** [Principios de automatización modernos](https://www.hashicorp.com/resources/what-is-infrastructure-as-code).
-21. **ShellCheck:** [Herramienta de análisis estático para scripts de Bash (Fundamental)](https://www.shellcheck.net/).
-22. **Cybersecurity Standards (ISO/IEC 27001):** [Introducción a la gestión de seguridad de la información](https://www.iso.org/isoiec-27001-information-security.html).
-23. **TryHackMe / HackTheBox:** [Plataformas para practicar administración de sistemas y seguridad](https://tryhackme.com/).
-
-### Programación Robusta y Validación:
-24. **Bash Pitfalls:** [Errores comunes y cómo evitarlos para scripts robustos](https://mywiki.wooledge.org/BashPitfalls).
-25. **Pure Bash Bible:** [Colección de fragmentos de Bash puro para evitar dependencias externas](https://github.com/dylanaraps/pure-bash-bible).
-26. **RFC 3986 - URI Generic Syntax:** [Estándar oficial sobre la codificación de caracteres en URLs](https://datatracker.ietf.org/doc/html/rfc3986).
-27. **OWASP Input Validation:** [Guía para prevenir vulnerabilidades mediante la validación de entradas](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html).
-
-### Microinformática y Hardware:
-28. **GNU Parted User's Manual:** [Guía avanzada sobre particionado de discos y tablas de particiones](https://www.gnu.org/software/parted/manual/parted.html).
-29. **VBoxManage Reference:** [Manual de control de VirtualBox desde línea de comandos](https://www.virtualbox.org/manual/ch08.html).
-30. **Linux Filesystem Hierarchy Standard (FHS):** [Entendiendo la estructura de directorios en Linux](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html).
-31. **PC Part Picker / TechPowerUp:** [Bases de datos de hardware para dimensionamiento de sistemas](https://www.techpowerup.com/).
-32. **CompTIA A+ / SMR Resources:** [Conceptos básicos de montaje y configuración de sistemas para microinformática](https://www.comptia.org/certifications/a).
+### Virtualización y Microinformática
+10. **VBoxManage Reference:** [Automatización de VirtualBox desde CLI](https://www.virtualbox.org/manual/ch08.html).
+11. **QEMU Disk Images:** [Formatos de disco (RAW, QCOW2, VMDK)](https://www.qemu.org/docs/master/system/images.html).
+12. **CompTIA A+ / SMR Resources:** [Conceptos básicos de montaje y configuración de SO](https://www.comptia.org/certifications/a).

@@ -502,6 +502,9 @@ fi
 echo "Actualizando listas de paquetes..."
 apt-get update
 
+# Pre-crear directorios que suelen causar fallos en scripts de post-instalación de paquetes (como plymouth)
+mkdir -p /etc/initramfs-tools/conf.d
+
 echo "Instalando paquetes base (locales, sudo)..."
 apt-get install -y locales sudo tzdata console-setup
 
@@ -543,7 +546,7 @@ echo "$VM_USER:$VM_PASS" | chpasswd
 
 echo "Instalando kernel y grub..."
 # Pre-configurar grub-pc
-echo "grub-pc grub-pc/install_devices multiselect \$1" | debconf-set-selections
+echo "grub-pc grub-pc/install_devices multiselect $1" | debconf-set-selections
 echo "grub-pc grub-pc/install_devices_empty boolean false" | debconf-set-selections
 apt-get install -y $KERNEL_PKGS
 
@@ -555,7 +558,7 @@ else
     echo "GRUB_DISABLE_OS_PROBER=true" >> /etc/default/grub
 fi
 
-grub-install --target=i386-pc --force --modules=part_msdos "\$1"
+grub-install --target=i386-pc --force --modules=part_msdos "$1"
 update-grub
 
 echo "Instalando herramientas básicas..."
@@ -564,17 +567,18 @@ apt-get install -y openssh-server curl git wget
 echo "Instalando Guest Tools ($HYPERVISOR)..."
 # Install guest tools individually to prevent one missing package from failing the whole build
 for pkg in $G_PKG; do
-    echo "Intentando instalar \$pkg..."
-    apt-get install -y \$pkg || echo "Advertencia: No se pudo instalar \$pkg"
+    echo "Intentando instalar $pkg..."
+    apt-get install -y $pkg || echo "Advertencia: No se pudo instalar $pkg"
 done
 
 # Reparar dependencias rotas si las hay antes de paquetes opcionales
+dpkg --configure -a
 apt-get install -f -y
 
 if [[ -n "$OPT_APT" ]]; then 
     echo "Instalando paquetes APT opcionales..."
-    for p in \${OPT_APT//,/ }; do
-        apt-get install -y \$p || echo "Error instalando \$p"
+    for p in ${OPT_APT//,/ }; do
+        apt-get install -y $p || echo "Error instalando $p"
     done
 fi
 
