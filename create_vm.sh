@@ -329,10 +329,10 @@ fi
 [[ -z "$VM_USER" ]] && VM_USER="arbol"
 [[ -z "$VM_PASS" ]] && VM_PASS="tronco"
 
-echo "Software Opcional:"
-read -p "Paquetes APT (ej: htop,ncdu): " OPT_APT
-read -p "Paquetes Flatpak (ej: vlc,spotify): " OPT_FLATPAK
-read -p "Paquetes Snap (ej: slack,discord): " OPT_SNAP
+echo "Software Opcional (presiona Enter para saltar):"
+read -p "Paquetes APT (ej: htop,ncdu) [ninguno]: " OPT_APT
+read -p "Paquetes Flatpak (ej: vlc,spotify) [ninguno]: " OPT_FLATPAK
+read -p "Paquetes Snap (ej: slack,discord) [ninguno]: " OPT_SNAP
 
 if [[ -z "$SELECTED_MIRROR" ]]; then
     echo "Mirrors: t) Default y) Manual l) busqueda del mirror mas rapido (por pais) b) busqueda de los mirrors mas rapidos (testeo de red)"
@@ -346,15 +346,37 @@ if [[ -z "$SELECTED_MIRROR" ]]; then
 fi
 [[ "${SELECTED_MIRROR: -1}" != "/" ]] && SELECTED_MIRROR="${SELECTED_MIRROR}/"
 
-read -p "¿Repositorio extrepo?: " EXTREPOS
+read -p "¿Repositorio extrepo? (ej: vscode,signal) [ninguno]: " EXTREPOS
 
 if [[ -z "$DESKTOP" ]]; then
     if [[ "$OS" == "ubuntu" ]]; then
-        echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Kylin 10) Ninguno"
-        read -p "Selecciona escritorio [10]: " desk_opt
-        case $desk_opt in
-            1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; 7) DESKTOP="edubuntu" ;; 8) DESKTOP="cinnamon" ;; 9) DESKTOP="kylin" ;; *) DESKTOP="none" ;;
-        esac
+        while true; do
+            echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Kylin 10) MATE 11) Ninguno"
+            read -p "Selecciona escritorio [11]: " desk_opt
+            case $desk_opt in
+                1) DESKTOP="gnome"; break ;;
+                2) DESKTOP="kde"; break ;;
+                3) DESKTOP="xfce"; break ;;
+                4) DESKTOP="lxde"; break ;;
+                5) DESKTOP="lxqt"; break ;;
+                6) DESKTOP="budgie"; break ;;
+                7) DESKTOP="edubuntu"; break ;;
+                8) DESKTOP="cinnamon"; break ;;
+                9) DESKTOP="kylin"; break ;;
+                10) 
+                    echo "AVISO: esta distro solo esta hasta 25.10 continuo y esta en proceso de reestructuracion del equipo directivo del sabor de ubuntu, con lo cual es posible que pueda eliminarse esta opcion en un futuro si canonical decide quitar este sabor (edicion) de su oferta, ¿estas seguro que quieres continuar? (S/N)"
+                    read -n 1 -p "Opción: " confirm_mate; echo ""
+                    if [[ "$confirm_mate" == "s" || "$confirm_mate" == "S" ]]; then
+                        DESKTOP="mate"
+                        break
+                    else
+                        echo "Regresando a la selección de escritorios..."
+                        continue
+                    fi
+                    ;;
+                *) DESKTOP="none"; break ;;
+            esac
+        done
     else
         echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Ninguno"
         read -p "Selecciona escritorio [7]: " desk_opt
@@ -604,6 +626,7 @@ if [[ "$DESKTOP" != "none" ]]; then
             edubuntu) apt-get install -y edubuntu-desktop ;;
             cinnamon) apt-get install -y ubuntucinnamon-desktop ;;
             kylin) apt-get install -y ubuntukylin-desktop ;;
+            mate) apt-get install -y ubuntu-mate-desktop ;;
         esac
     else
         apt-get install -y task-${DESKTOP}-desktop

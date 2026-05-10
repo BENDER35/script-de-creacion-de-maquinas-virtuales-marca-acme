@@ -16,7 +16,7 @@ Herramienta educativa para la automatización de despliegues Linux mediante `deb
 
 3. **Ejemplo de creación robusta (Laboratorio de Sistemas/Microinformática):**
    ```bash
-   sudo ./create_vm.sh --name "aula_kylin" --os ubuntu --desktop kylin --ram 4096 --disk 80G --cpucores 2
+   sudo ./create_vm.sh --name "aula_mate" --os ubuntu --desktop mate --ram 4096 --disk 80G --cpucores 2
    ```
 
 ## 📚 Lo que aprenderás usando este script
@@ -24,9 +24,9 @@ Herramienta educativa para la automatización de despliegues Linux mediante `deb
 Este proyecto es un laboratorio de aprendizaje avanzado, diseñado para cubrir competencias clave en:
 
 *   **Administración de Sistemas (ASIR/SMR):** Configuración de hardware virtual (CPU, RAM, Disco), particionado de discos con `parted`, sistemas de archivos (EXT4), montajes de dispositivos loop y auditoría de sistemas mediante logs limpios y trazables.
-*   **Microinformática y Montaje (SMR):** Entenderás el dimensionamiento de máquinas virtuales, la gestión de drivers mediante herramientas de invitado (Guest Tools) y la diferencia entre diversos entornos de escritorio (KDE, XFCE, Cinnamon, Kylin) y sus requisitos de hardware.
+*   **Microinformática y Montaje (SMR):** Entenderás el dimensionamiento de máquinas virtuales, la gestión de drivers mediante herramientas de invitado (Guest Tools) y la diferencia entre diversos entornos de escritorio (KDE, XFCE, Cinnamon, Kylin, MATE) y sus requisitos de hardware.
 *   **Ciberseguridad:** Gestión de repositorios de seguridad, firma de paquetes mediante GPG (método moderno `signed-by`), gestión de identidades, configuración de privilegios administrativos (`sudo`) y endurecimiento (hardening) básico del sistema.
-*   **Programación y Automatización (DAM/DAW):** Desarrollo avanzado en Bash, **resolución inteligente de dependencias** (Application ID resolution), validación y sanitización de entradas de usuario, generación dinámica de configuraciones (Heredocs) e interacción con APIs externas.
+*   **Programación y Automatización (DAM/DAW):** Desarrollo avanzado en Bash, **resolución inteligente de dependencias** (Application ID resolution), validación y sanitización de entradas de usuario, generación dinámica de configuraciones (Heredocs) e interacción con APIs externas. Además, aprenderás sobre **User Experience (UX) en CLI** mediante la creación de menús flexibles con entradas opcionales y lógica de confirmación de riesgos.
 *   **Sistemas Modernos:** Integración y resolución de problemas en gestores de paquetes aislados como **Flatpak** (sandboxing), **Snap** y herramientas de gestión de repositorios curados como **Extrepo**.
 
 

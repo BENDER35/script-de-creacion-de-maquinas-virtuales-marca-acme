@@ -74,3 +74,9 @@ Este documento detalla la evolución del script `create_vm.sh` y las tareas real
     *   **Logging**: Eliminación de redundancias que causaban entradas dobles en los informes de instalación.
     *   **Snap**: Mejora en el feedback sobre la instalación en entornos chroot, aclarando el estado de los paquetes para el primer arranque.
     *   **Robustez en Provisión**: Corrección de escapes de variables en la generación dinámica de `setup.sh` para asegurar una ejecución fiable dentro del chroot.
+
+*   **18:45** - **Integración de Ubuntu MATE y Flexibilidad en el Menú**:
+    *   **Ubuntu MATE**: Incorporación del escritorio **MATE** (`mate`) como opción de instalación, incluyendo un aviso legal sobre la reestructuración del equipo del sabor y su posible eliminación futura por parte de Canonical.
+    *   **Control de Flujo**: Implementación de una lógica de confirmación (S/N) para la opción MATE que permite regresar al menú de selección de escritorio en caso de desistimiento.
+    *   **Interactividad Mejorada**: Flexibilización total de las entradas de software adicional (APT, Snap, Flatpak) y repositorios externos (Extrepo). El script ahora permite saltar estas configuraciones simplemente presionando Enter, garantizando que el flujo de construcción no se detenga.
+    *   **Enfoque Educativo**: Actualización de toda la documentación para reflejar estos cambios como lecciones sobre **gestión de riesgos en software**, **diseño de interfaces CLI amigables** y **mantenimiento de ciclos de vida de productos tecnológicos**.

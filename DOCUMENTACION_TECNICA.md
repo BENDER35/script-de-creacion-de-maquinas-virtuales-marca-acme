@@ -109,10 +109,22 @@ sudo ./create_vm.sh --name "servidor_web" --os debian --ram 1024 --desktop none 
 Para estudiantes de **Microinformática** y **Sistemas**, entender la asignación de recursos es fundamental:
 *   **Gestión de CPUs:** El parámetro `--cpucores` permite simular entornos multiprocesador, permitiendo estudiar el rendimiento de aplicaciones multihilo en sistemas Linux.
 *   **Dimensionamiento de Recursos:** La capacidad de definir el RAM y el Disco desde el menú interactivo enseña a los estudiantes a equilibrar las necesidades del sistema operativo con los recursos físicos disponibles en el host.
-*   **Edubuntu, Cinnamon y Kylin (Sabores):** La inclusión del sabor educativo **Edubuntu** (`gnome(edub.)`), el elegante entorno **Cinnamon** (`cinnamon(ub)`) y el sabor orientado a la comunidad china **Ubuntu Kylin** (`kylin`) permite a los estudiantes comparar diferentes paradigmas de escritorio, localizaciones y requisitos de recursos en sistemas modernos.
+*   **Edubuntu, Cinnamon, Kylin y MATE (Sabores):** La inclusión del sabor educativo **Edubuntu** (`gnome(edub.)`), el elegante entorno **Cinnamon** (`cinnamon(ub)`), el sabor orientado a la comunidad china **Ubuntu Kylin** (`kylin`) y el clásico **Ubuntu MATE** (`mate`) permite a los estudiantes comparar diferentes paradigmas de escritorio, localizaciones y requisitos de recursos en sistemas modernos.
 
-## 7. Registro de Cambios (Changelog Educativo)
+### Gestión de Riesgos y Ciclo de Vida (MATE)
+La inclusión de Ubuntu MATE introduce un concepto avanzado en la administración de sistemas: la **gestión de la obsolescencia y el riesgo de soporte**. 
+*   **Aviso Preventivo:** Al seleccionar MATE, el script presenta un aviso sobre la reestructuración del equipo de desarrollo y la incertidumbre sobre su permanencia en el catálogo de Canonical.
+*   **Decisión Informada:** Esto enseña a los estudiantes que la elección de una pila tecnológica no solo depende de sus funciones técnicas, sino también de la salud del proyecto y el soporte a largo plazo (LTS).
 
+## 8. Diseño de Interfaces CLI Amigables (Programación y UX)
+
+Un buen script de automatización debe ser flexible. Las mejoras en el menú interactivo demuestran principios de **User Experience (UX) en la terminal**:
+*   **Entradas Opcionales:** Permitir que campos como paquetes APT, Snap o Flatpak sean omitidos (presionando Enter) evita que el usuario se sienta forzado a tomar decisiones no planificadas, manteniendo la fluidez del script.
+*   **Bucles de Retroalimentación:** La lógica de confirmación en la opción MATE permite al usuario "arrepentirse" y volver al menú anterior sin tener que reiniciar todo el script, una práctica recomendada para minimizar la frustración del usuario.
+
+## 9. Registro de Cambios (Changelog Educativo)
+
+*   **v1.9 - Ubuntu MATE y UX Avanzada:** Integración del sabor MATE con sistema de advertencia de ciclo de vida y optimización de la flexibilidad en el menú interactivo para una mejor experiencia de usuario.
 *   **v1.8 - Integración de Ubuntu Kylin:** Incorporación del sabor Ubuntu Kylin (`ubuntukylin-desktop`), ampliando el abanico de pruebas de compatibilidad y entornos de escritorio internacionales.
 *   **v1.7 - Soporte para Ubuntu Cinnamon:** Integración del entorno de escritorio Cinnamon para Ubuntu, mejorando la oferta de sabores disponibles para laboratorios de microinformática.
 *   **v1.6 - Personalización de Hardware:** Introducción de control sobre núcleos de CPU, RAM y tamaño de disco, junto con soporte para el sabor educativo Edubuntu.
@@ -135,6 +147,8 @@ Para estudiantes de **Microinformática** y **Sistemas**, entender la asignació
 9.  **Bash Manual - Redirections:** [Explicación detallada de descriptores de archivo y pipes](https://www.gnu.org/software/bash/manual/html_node/Redirections.html).
 10. **QEMU Documentation:** [Formatos de imagen de disco](https://www.qemu.org/docs/master/system/images.html).
 11. **Ubuntu Kylin Official:** [Página del proyecto Ubuntu Kylin](https://www.ubuntukylin.com/).
+12. **Ubuntu MATE Project:** [Sitio oficial de la comunidad Ubuntu MATE](https://ubuntu-mate.org/).
+13. **Command Line Interface Guidelines:** [Mejores prácticas para el diseño de herramientas CLI](https://clig.dev/).
 
 ### Administración de Usuarios y Seguridad:
 11. **Debian Wiki - SystemGroups:** [Entendiendo los grupos y privilegios en Debian](https://wiki.debian.org/SystemGroups).
