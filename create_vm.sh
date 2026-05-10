@@ -303,6 +303,12 @@ fi
 
 read -p "RAM (MB) [$VM_RAM]: " input_ram; [[ -n "$input_ram" ]] && VM_RAM="$input_ram"
 read -p "Disco (ej: 50G) [$VM_DISK_SIZE]: " input_disk; [[ -n "$input_disk" ]] && VM_DISK_SIZE="$input_disk"
+# Validación de tamaño de disco: si es solo numérico, añadir 'G' por defecto
+if [[ "$VM_DISK_SIZE" =~ ^[0-9]+$ ]]; then
+    log "No se detectó unidad en el tamaño del disco, asumiendo Gigabytes (G)." "WARNING"
+    VM_DISK_SIZE="${VM_DISK_SIZE}G"
+fi
+
 read -p "Núcleos de CPU [$VM_CPUS]: " input_cpus; [[ -n "$input_cpus" ]] && VM_CPUS="$input_cpus"
 
 read -p "Idioma [$LOCALE]: " input_locale; [[ -n "$input_locale" ]] && LOCALE="$input_locale"
@@ -379,8 +385,10 @@ if [[ -n "$WALLHAVEN_QUERY" ]]; then
     global_count=1
     IFS=',' read -ra QUERIES <<< "$WALLHAVEN_QUERY"
     for q in "${QUERIES[@]}"; do
+        # Limpiar espacios en blanco
+        q=$(echo "$q" | xargs)
         log "Buscando: $q..."
-        QUERY_ENC=$(echo "$q" | jq -sRr @uri)
+        QUERY_ENC=$(echo -n "$q" | jq -sRr @uri)
         API_URL="https://wallhaven.cc/api/v1/search?q=${QUERY_ENC}&sorting=random&atleast=1920x1080&per_page=10"
         WP_URLS=$(curl -s "$API_URL" | jq -r '.data[].path' | head -n 10)
         for u in $WP_URLS; do

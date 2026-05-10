@@ -55,3 +55,10 @@ Este documento detalla la evolución del script `create_vm.sh` y las tareas real
     *   **Aprovisionamiento**: Configuración de la fase chroot para instalar el paquete `ubuntucinnamon-desktop` (corregido).
     *   **Interfaz CLI**: Actualización del menú interactivo y la ayuda del script para reflejar la nueva opción.
     *   **Consistencia Documental**: Sincronización de la documentación técnica e historial de cambios.
+
+## 2026-05-10
+*   **09:30** - **Corrección Crítica de Errores de Construcción y Robustez**:
+    *   **Validación de Disco**: Implementación de un mecanismo de seguridad que detecta si el usuario omite la unidad (G/M) en el tamaño del disco, asignando "G" por defecto para evitar la creación de discos de bytes (error crítico en `qemu-img`).
+    *   **Corrección de Codificación URL**: Solución de un bug en la descarga de fondos de pantalla de Wallhaven donde se incluían saltos de línea (`%0A`) en las consultas, lo que corrompía las peticiones a la API.
+    *   **Normalización de Consultas**: Añadida limpieza de espacios en blanco (`xargs`) en las búsquedas de fondos múltiples.
+    *   **Enfoque Educativo Integral**: Actualización masiva de la documentación (`README.md`, `DOCUMENTACION_TECNICA.md`) para orientarla específicamente a cursos de **Ciberseguridad**, **Sistemas**, **Programación** y **Microinformática**, integrando conceptos de validación de entrada y robustez de software.

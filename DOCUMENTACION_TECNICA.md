@@ -62,7 +62,21 @@ La autenticidad de los paquetes se garantiza mediante criptografía de clave pú
     *   **Comando:** `apt-key add`.
     *   **Riesgo:** Añade la llave a un llavero global compartido (`/etc/apt/trusted.gpg`), lo que significa que esa llave podría validar paquetes de *cualquier* repositorio, comprometiendo la seguridad global si la llave es vulnerada.
 
-## 4. debootstrap y Repositorios con Firma
+## 4. Validación de Entradas y Robustez (Programación y Sistemas)
+
+En el desarrollo de herramientas de automatización, la validación de la entrada del usuario es un pilar fundamental tanto para la **Programación** (evitar bugs) como para la **Ciberseguridad** (evitar inyecciones o estados inesperados).
+
+### Validación de Unidades de Almacenamiento
+*   **Problema Detectado:** Herramientas como `qemu-img` interpretan valores numéricos puros como bytes. Si un usuario introduce "70" esperando Gigabytes, se crea un archivo de 70 bytes, lo que provoca fallos catastróficos en el particionado.
+*   **Solución Técnica:** El script implementa una expresión regular (`^[0-9]+$`) para detectar entradas sin sufijo. Si se detecta un número puro, el script realiza una **asunción segura** y añade el sufijo "G".
+*   **Lección para Estudiantes:** Siempre se debe validar que los datos de entrada cumplan con el formato esperado por las herramientas de bajo nivel para garantizar la estabilidad del sistema.
+
+### Sanitización de Consultas API
+*   **Problema Detectado:** Al procesar listas separadas por comas, es común que se introduzcan saltos de línea o espacios accidentales. Al codificar estos caracteres para una URL (URL Encoding), un salto de línea se convierte en `%0A`, lo que invalida la consulta a la API de Wallhaven.
+*   **Solución Técnica:** Se utiliza `xargs` para limpiar espacios en blanco y `echo -n` para asegurar que el flujo hacia `jq` no contenga caracteres de control invisibles.
+*   **Lección para Estudiantes:** La sanitización de flujos de datos es crítica cuando se interactúa con servicios externos (APIs) para prevenir comportamientos erráticos.
+
+## 5. debootstrap y Repositorios con Firma
 
 Cuando usamos `debootstrap` para crear una máquina desde cero, el comando verifica la firma del repositorio principal usando el llavero del sistema host (`/usr/share/keyrings/debian-archive-keyring.gpg`).
 
@@ -135,3 +149,15 @@ Para estudiantes de **Microinformática** y **Sistemas**, entender la asignació
 20. **ShellCheck:** [Herramienta de análisis estático para scripts de Bash (Fundamental)](https://www.shellcheck.net/).
 21. **Cybersecurity Standards (ISO/IEC 27001):** [Introducción a la gestión de seguridad de la información](https://www.iso.org/isoiec-27001-information-security.html).
 22. **TryHackMe / HackTheBox:** [Plataformas para practicar administración de sistemas y seguridad](https://tryhackme.com/).
+
+### Programación Robusta y Validación (Nuevo):
+23. **Bash Pitfalls:** [Errores comunes y cómo evitarlos para scripts robustos](https://mywiki.wooledge.org/BashPitfalls).
+24. **Pure Bash Bible:** [Colección de fragmentos de Bash puro para evitar dependencias externas](https://github.com/dylanaraps/pure-bash-bible).
+25. **RFC 3986 - URI Generic Syntax:** [Estándar oficial sobre la codificación de caracteres en URLs](https://datatracker.ietf.org/doc/html/rfc3986).
+26. **OWASP Input Validation:** [Guía para prevenir vulnerabilidades mediante la validación de entradas](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html).
+
+### Microinformática y Hardware (Nuevo):
+27. **GNU Parted User's Manual:** [Guía avanzada sobre particionado de discos y tablas de particiones](https://www.gnu.org/software/parted/manual/parted.html).
+28. **VBoxManage Reference:** [Manual de control de VirtualBox desde línea de comandos](https://www.virtualbox.org/manual/ch08.html).
+29. **Linux Filesystem Hierarchy Standard (FHS):** [Entendiendo la estructura de directorios en Linux](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html).
+30. **PC Part Picker / TechPowerUp:** [Bases de datos de hardware para dimensionamiento de sistemas](https://www.techpowerup.com/).
