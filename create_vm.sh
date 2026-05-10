@@ -80,7 +80,7 @@ Opciones:
   --cpucores NUM        Número de núcleos de CPU (defecto: 2).
   --user USER           Usuario del sistema (defecto: arbol).
   --pass PASS           Contraseña del usuario (defecto: tronco).
-  --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, cinnamon, none (defecto: none).
+  --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, cinnamon, kylin, none (defecto: none).
   --mirror URL          URL del mirror personalizado.
   --verbose             Activa el modo de depuración (set -x).
 
@@ -350,10 +350,10 @@ read -p "¿Repositorio extrepo?: " EXTREPOS
 
 if [[ -z "$DESKTOP" ]]; then
     if [[ "$OS" == "ubuntu" ]]; then
-        echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Ninguno"
-        read -p "Selecciona escritorio [9]: " desk_opt
+        echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Kylin 10) Ninguno"
+        read -p "Selecciona escritorio [10]: " desk_opt
         case $desk_opt in
-            1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; 7) DESKTOP="edubuntu" ;; 8) DESKTOP="cinnamon" ;; *) DESKTOP="none" ;;
+            1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; 7) DESKTOP="edubuntu" ;; 8) DESKTOP="cinnamon" ;; 9) DESKTOP="kylin" ;; *) DESKTOP="none" ;;
         esac
     else
         echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Ninguno"
@@ -590,6 +590,7 @@ if [[ "$DESKTOP" != "none" ]]; then
             budgie) apt-get install -y ubuntu-budgie-desktop ;;
             edubuntu) apt-get install -y edubuntu-desktop ;;
             cinnamon) apt-get install -y ubuntucinnamon-desktop ;;
+            kylin) apt-get install -y ubuntukylin-desktop ;;
         esac
     else
         apt-get install -y task-${DESKTOP}-desktop

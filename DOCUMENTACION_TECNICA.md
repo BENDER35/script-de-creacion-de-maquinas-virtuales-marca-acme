@@ -107,10 +107,11 @@ sudo ./create_vm.sh --name "servidor_web" --os debian --ram 1024 --desktop none 
 Para estudiantes de **Microinformática** y **Sistemas**, entender la asignación de recursos es fundamental:
 *   **Gestión de CPUs:** El parámetro `--cpucores` permite simular entornos multiprocesador, permitiendo estudiar el rendimiento de aplicaciones multihilo en sistemas Linux.
 *   **Dimensionamiento de Recursos:** La capacidad de definir el RAM y el Disco desde el menú interactivo enseña a los estudiantes a equilibrar las necesidades del sistema operativo con los recursos físicos disponibles en el host.
-*   **Edubuntu y Cinnamon (Sabores):** La inclusión del sabor educativo **Edubuntu** (`gnome(edub.)`) y el elegante entorno **Cinnamon** (`cinnamon(ub)`) permite a los estudiantes comparar diferentes paradigmas de escritorio y requisitos de recursos en sistemas modernos.
+*   **Edubuntu, Cinnamon y Kylin (Sabores):** La inclusión del sabor educativo **Edubuntu** (`gnome(edub.)`), el elegante entorno **Cinnamon** (`cinnamon(ub)`) y el sabor orientado a la comunidad china **Ubuntu Kylin** (`kylin`) permite a los estudiantes comparar diferentes paradigmas de escritorio, localizaciones y requisitos de recursos en sistemas modernos.
 
 ## 7. Registro de Cambios (Changelog Educativo)
 
+*   **v1.8 - Integración de Ubuntu Kylin:** Incorporación del sabor Ubuntu Kylin (`ubuntukylin-desktop`), ampliando el abanico de pruebas de compatibilidad y entornos de escritorio internacionales.
 *   **v1.7 - Soporte para Ubuntu Cinnamon:** Integración del entorno de escritorio Cinnamon para Ubuntu, mejorando la oferta de sabores disponibles para laboratorios de microinformática.
 *   **v1.6 - Personalización de Hardware:** Introducción de control sobre núcleos de CPU, RAM y tamaño de disco, junto con soporte para el sabor educativo Edubuntu.
 *   **v1.5 - Gestión de Identidades:** Implementación de selección dinámica de credenciales (Usuario/Pass vs root/toor) con lógica de detección de usuarios existentes.
@@ -130,34 +131,36 @@ Para estudiantes de **Microinformática** y **Sistemas**, entender la asignació
 7.  **Linux Kernel Headers:** [Por qué son necesarios para compilar módulos](https://kernelnewbies.org/KernelHeaders).
 8.  **Bash Manual - Redirections:** [Explicación detallada de descriptores de archivo y pipes](https://www.gnu.org/software/bash/manual/html_node/Redirections.html).
 9.  **QEMU Documentation:** [Formatos de imagen de disco](https://www.qemu.org/docs/master/system/images.html).
+10. **Ubuntu Kylin Official:** [Página del proyecto Ubuntu Kylin](https://www.ubuntukylin.com/).
 
 ### Administración de Usuarios y Seguridad:
-10. **Debian Wiki - SystemGroups:** [Entendiendo los grupos y privilegios en Debian](https://wiki.debian.org/SystemGroups).
-11. **Sudoers Manual:** [Configuración avanzada del archivo sudoers](https://www.sudo.ws/docs/man/sudoers.man/).
-12. **Shadow Passwords:** [Cómo Linux gestiona las contraseñas de forma segura](https://tldp.org/HOWTO/Shadow-Password-HOWTO.html).
-13. **The Linux Documentation Project - Security Guide:** [Principios de seguridad en Linux](https://tldp.org/LDP/sag/html/index.html).
+11. **Debian Wiki - SystemGroups:** [Entendiendo los grupos y privilegios en Debian](https://wiki.debian.org/SystemGroups).
+12. **Sudoers Manual:** [Configuración avanzada del archivo sudoers](https://www.sudo.ws/docs/man/sudoers.man/).
+13. **Shadow Passwords:** [Cómo Linux gestiona las contraseñas de forma segura](https://tldp.org/HOWTO/Shadow-Password-HOWTO.html).
+14. **The Linux Documentation Project - Security Guide:** [Principios de seguridad en Linux](https://tldp.org/LDP/sag/html/index.html).
 
 ### Auditoría y Ciberseguridad:
-14. **NIST SP 800-92:** [Guía para la gestión de logs en seguridad informática](https://csrc.nist.gov/publications/detail/sp/800-92/final).
-15. **OWASP - Logging Cheat Sheet:** [Buenas prácticas de logging para seguridad](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Vocabulary_Cheat_Sheet.html).
-16. **CIS Benchmarks for Linux:** [Estándares de endurecimiento de sistemas](https://www.cisecurity.org/benchmarks/).
+15. **NIST SP 800-92:** [Guía para la gestión de logs en seguridad informática](https://csrc.nist.gov/publications/detail/sp/800-92/final).
+16. **OWASP - Logging Cheat Sheet:** [Buenas prácticas de logging para seguridad](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Vocabulary_Cheat_Sheet.html).
+17. **CIS Benchmarks for Linux:** [Estándares de endurecimiento de sistemas](https://www.cisecurity.org/benchmarks/).
 
 ### Recursos para Estudiantes (SMR/ASIR/DAM):
-17. **The Debian Administrator's Handbook:** [Gestión de paquetes y repositorios (Imprescindible)](https://debian-handbook.info/).
-18. **Google Shell Style Guide:** [Estándares de programación profesional en Bash](https://google.github.io/styleguide/shellguide.html).
-19. **Infrastructure as Code (IaC) Patterns:** [Principios de automatización modernos](https://www.hashicorp.com/resources/what-is-infrastructure-as-code).
-20. **ShellCheck:** [Herramienta de análisis estático para scripts de Bash (Fundamental)](https://www.shellcheck.net/).
-21. **Cybersecurity Standards (ISO/IEC 27001):** [Introducción a la gestión de seguridad de la información](https://www.iso.org/isoiec-27001-information-security.html).
-22. **TryHackMe / HackTheBox:** [Plataformas para practicar administración de sistemas y seguridad](https://tryhackme.com/).
+18. **The Debian Administrator's Handbook:** [Gestión de paquetes y repositorios (Imprescindible)](https://debian-handbook.info/).
+19. **Google Shell Style Guide:** [Estándares de programación profesional en Bash](https://google.github.io/styleguide/shellguide.html).
+20. **Infrastructure as Code (IaC) Patterns:** [Principios de automatización modernos](https://www.hashicorp.com/resources/what-is-infrastructure-as-code).
+21. **ShellCheck:** [Herramienta de análisis estático para scripts de Bash (Fundamental)](https://www.shellcheck.net/).
+22. **Cybersecurity Standards (ISO/IEC 27001):** [Introducción a la gestión de seguridad de la información](https://www.iso.org/isoiec-27001-information-security.html).
+23. **TryHackMe / HackTheBox:** [Plataformas para practicar administración de sistemas y seguridad](https://tryhackme.com/).
 
-### Programación Robusta y Validación (Nuevo):
-23. **Bash Pitfalls:** [Errores comunes y cómo evitarlos para scripts robustos](https://mywiki.wooledge.org/BashPitfalls).
-24. **Pure Bash Bible:** [Colección de fragmentos de Bash puro para evitar dependencias externas](https://github.com/dylanaraps/pure-bash-bible).
-25. **RFC 3986 - URI Generic Syntax:** [Estándar oficial sobre la codificación de caracteres en URLs](https://datatracker.ietf.org/doc/html/rfc3986).
-26. **OWASP Input Validation:** [Guía para prevenir vulnerabilidades mediante la validación de entradas](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html).
+### Programación Robusta y Validación:
+24. **Bash Pitfalls:** [Errores comunes y cómo evitarlos para scripts robustos](https://mywiki.wooledge.org/BashPitfalls).
+25. **Pure Bash Bible:** [Colección de fragmentos de Bash puro para evitar dependencias externas](https://github.com/dylanaraps/pure-bash-bible).
+26. **RFC 3986 - URI Generic Syntax:** [Estándar oficial sobre la codificación de caracteres en URLs](https://datatracker.ietf.org/doc/html/rfc3986).
+27. **OWASP Input Validation:** [Guía para prevenir vulnerabilidades mediante la validación de entradas](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html).
 
-### Microinformática y Hardware (Nuevo):
-27. **GNU Parted User's Manual:** [Guía avanzada sobre particionado de discos y tablas de particiones](https://www.gnu.org/software/parted/manual/parted.html).
-28. **VBoxManage Reference:** [Manual de control de VirtualBox desde línea de comandos](https://www.virtualbox.org/manual/ch08.html).
-29. **Linux Filesystem Hierarchy Standard (FHS):** [Entendiendo la estructura de directorios en Linux](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html).
-30. **PC Part Picker / TechPowerUp:** [Bases de datos de hardware para dimensionamiento de sistemas](https://www.techpowerup.com/).
+### Microinformática y Hardware:
+28. **GNU Parted User's Manual:** [Guía avanzada sobre particionado de discos y tablas de particiones](https://www.gnu.org/software/parted/manual/parted.html).
+29. **VBoxManage Reference:** [Manual de control de VirtualBox desde línea de comandos](https://www.virtualbox.org/manual/ch08.html).
+30. **Linux Filesystem Hierarchy Standard (FHS):** [Entendiendo la estructura de directorios en Linux](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html).
+31. **PC Part Picker / TechPowerUp:** [Bases de datos de hardware para dimensionamiento de sistemas](https://www.techpowerup.com/).
+32. **CompTIA A+ / SMR Resources:** [Conceptos básicos de montaje y configuración de sistemas para microinformática](https://www.comptia.org/certifications/a).

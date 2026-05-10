@@ -62,3 +62,9 @@ Este documento detalla la evolución del script `create_vm.sh` y las tareas real
     *   **Corrección de Codificación URL**: Solución de un bug en la descarga de fondos de pantalla de Wallhaven donde se incluían saltos de línea (`%0A`) en las consultas, lo que corrompía las peticiones a la API.
     *   **Normalización de Consultas**: Añadida limpieza de espacios en blanco (`xargs`) en las búsquedas de fondos múltiples.
     *   **Enfoque Educativo Integral**: Actualización masiva de la documentación (`README.md`, `DOCUMENTACION_TECNICA.md`) para orientarla específicamente a cursos de **Ciberseguridad**, **Sistemas**, **Programación** y **Microinformática**, integrando conceptos de validación de entrada y robustez de software.
+
+*   **16:30** - **Integración de Ubuntu Kylin y Orientación Curricular**:
+    *   **Nuevo Sabor**: Incorporación de **Ubuntu Kylin** como opción de escritorio (`kylin`), instalando el paquete `ubuntukylin-desktop`.
+    *   **Interfaz**: Actualización del menú de selección de escritorio para incluir Kylin y reajuste de las opciones predeterminadas.
+    *   **Contenido Educativo**: Reestructuración profunda de `README.md`, `DOCUMENTACION_TECNICA.md` y la bibliografía para servir como material didáctico en cursos de Sistemas, Seguridad, Programación y Microinformática (SMR/ASIR).
+    *   **Enfoque en Microinformática**: Inclusión de secciones específicas sobre montaje de sistemas operativos y gestión de entornos de escritorio.

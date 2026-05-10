@@ -16,17 +16,17 @@ Herramienta educativa para la automatización de despliegues Linux mediante `deb
 
 3. **Ejemplo de creación robusta (Laboratorio de Sistemas/Microinformática):**
    ```bash
-   sudo ./create_vm.sh --name "aula_virtual" --os ubuntu --desktop edubuntu --ram 4096 --disk 100G --cpucores 4
+   sudo ./create_vm.sh --name "aula_kylin" --os ubuntu --desktop kylin --ram 4096 --disk 80G --cpucores 2
    ```
 
 ## 📚 Lo que aprenderás usando este script
 
 Este proyecto es un laboratorio de aprendizaje avanzado, diseñado para cubrir competencias clave en:
 
-*   **Administración de Sistemas:** Configuración de hardware virtual (CPU, RAM, Disco), particionado de discos con `parted`, sistemas de archivos (EXT4), montajes de dispositivos loop, gestión de puntos de montaje y administración de recursos en caliente.
-*   **Microinformática:** Entenderás el dimensionamiento de máquinas virtuales, la gestión de drivers mediante herramientas de invitado (Guest Tools) y la diferencia entre diversos entornos de escritorio y sus requisitos de hardware.
+*   **Administración de Sistemas (ASIR/SMR):** Configuración de hardware virtual (CPU, RAM, Disco), particionado de discos con `parted`, sistemas de archivos (EXT4), montajes de dispositivos loop, gestión de puntos de montaje y administración de recursos en caliente.
+*   **Microinformática y Montaje (SMR):** Entenderás el dimensionamiento de máquinas virtuales, la gestión de drivers mediante herramientas de invitado (Guest Tools) y la diferencia entre diversos entornos de escritorio (KDE, XFCE, Cinnamon, Kylin) y sus requisitos de hardware.
 *   **Ciberseguridad:** Gestión de repositorios de seguridad, firma de paquetes mediante GPG (método moderno `signed-by`), gestión de identidades, configuración de privilegios administrativos (`sudo`), auditoría forense mediante logs detallados y endurecimiento (hardening) básico del sistema.
-*   **Programación y Automatización:** Desarrollo avanzado en Bash, validación y sanitización de entradas de usuario, generación dinámica de configuraciones (Heredocs), interacción con APIs externas (Wallhaven) y control de flujo mediante señales del sistema (`traps`).
+*   **Programación y Automatización (DAM/DAW):** Desarrollo avanzado en Bash, validación y sanitización de entradas de usuario, generación dinámica de configuraciones (Heredocs), interacción con APIs externas (Wallhaven) y control de flujo mediante señales del sistema (`traps`).
 *   **Sistemas Modernos:** Integración y resolución de problemas en gestores de paquetes aislados como **Flatpak** (sandboxing), **Snap** y herramientas de gestión de repositorios curados como **Extrepo**.
 
 
