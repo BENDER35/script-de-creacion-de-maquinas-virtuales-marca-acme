@@ -80,7 +80,7 @@ Opciones:
   --cpucores NUM        Número de núcleos de CPU (defecto: 2).
   --user USER           Usuario del sistema (defecto: arbol).
   --pass PASS           Contraseña del usuario (defecto: tronco).
-  --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, none (defecto: none).
+  --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, cinnamon, none (defecto: none).
   --mirror URL          URL del mirror personalizado.
   --verbose             Activa el modo de depuración (set -x).
 
@@ -162,6 +162,60 @@ find_fastest_mirror() {
         fi
     done
     [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
+    echo "$fastest"
+}
+
+find_mirror_by_country() {
+    local os=$1
+    log "Detectando país por geolocalización IP..."
+    local country=$(curl -s --connect-timeout 2 https://ipapi.co/country/ | tr '[:upper:]' '[:lower:]')
+    
+    if [[ -z "$country" || ${#country} -ne 2 ]]; then
+        log "No se pudo detectar el país, usando mirror global." "WARNING"
+        [[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/"
+        return
+    fi
+    
+    log "País detectado: $country"
+    if [[ "$os" == "ubuntu" ]]; then
+        echo "http://${country}.archive.ubuntu.com/ubuntu/"
+    else
+        echo "http://ftp.${country}.debian.org/debian/"
+    fi
+}
+
+find_fastest_mirror_parallel() {
+    local os=$1
+    local mirrors=()
+    log "Iniciando testeo de red paralelo para encontrar el mejor mirror..."
+    
+    if [[ "$os" == "ubuntu" ]]; then
+        mirrors=($(curl -s --connect-timeout 2 http://mirrors.ubuntu.com/mirrors.txt))
+    else
+        # Para Debian, usamos una lista de mirrors conocidos de alta velocidad
+        mirrors=("http://deb.debian.org/debian/" "http://ftp.de.debian.org/debian/" "http://ftp.us.debian.org/debian/" "http://ftp.fr.debian.org/debian/" "http://ftp.es.debian.org/debian/" "http://mirror.hetzner.com/debian/")
+    fi
+    
+    [[ ${#mirrors[@]} -eq 0 ]] && mirrors=($([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/"))
+
+    local tmp_results=$(mktemp)
+    
+    # Lanzar pruebas en paralelo
+    for m in "${mirrors[@]}"; do
+        (
+            [[ "${m: -1}" != "/" ]] && m="${m}/"
+            local time=$(curl -o /dev/null -s -I -w '%{time_total}' --connect-timeout 2 --max-time 3 "$m" | tr ',' '.' || echo 999)
+            if [[ ! "$time" =~ ^[0-9.]+$ ]]; then time=999; fi
+            echo "$time $m" >> "$tmp_results"
+        ) &
+    done
+    wait # Esperar a que terminen todos los procesos de fondo
+    
+    local fastest=$(sort -n "$tmp_results" | head -n 1 | awk '{print $2}')
+    rm -f "$tmp_results"
+    
+    [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
+    log "Mirror más rápido detectado: $fastest"
     echo "$fastest"
 }
 
@@ -275,12 +329,13 @@ read -p "Paquetes Flatpak (ej: vlc,spotify): " OPT_FLATPAK
 read -p "Paquetes Snap (ej: slack,discord): " OPT_SNAP
 
 if [[ -z "$SELECTED_MIRROR" ]]; then
-    echo "Mirrors: t) Default Y) Manual f) Fastest"
-    read -n 1 -p "Opción [f]: " mirror_choice; echo ""
+    echo "Mirrors: t) Default y) Manual l) busqueda del mirror mas rapido (por pais) b) busqueda de los mirrors mas rapidos (testeo de red)"
+    read -n 1 -p "Opción [l]: " mirror_choice; echo ""
     case $mirror_choice in
         t|T) SELECTED_MIRROR=$([[ "$OS" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/") ;;
         y|Y) read -p "URL del Mirror: " SELECTED_MIRROR ;;
-        *) SELECTED_MIRROR=$(find_fastest_mirror "$OS") ;;
+        b|B) SELECTED_MIRROR=$(find_fastest_mirror_parallel "$OS") ;;
+        *) SELECTED_MIRROR=$(find_mirror_by_country "$OS") ;;
     esac
 fi
 [[ "${SELECTED_MIRROR: -1}" != "/" ]] && SELECTED_MIRROR="${SELECTED_MIRROR}/"
@@ -289,10 +344,10 @@ read -p "¿Repositorio extrepo?: " EXTREPOS
 
 if [[ -z "$DESKTOP" ]]; then
     if [[ "$OS" == "ubuntu" ]]; then
-        echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) Ninguno"
-        read -p "Selecciona escritorio [8]: " desk_opt
+        echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Ninguno"
+        read -p "Selecciona escritorio [9]: " desk_opt
         case $desk_opt in
-            1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; 7) DESKTOP="edubuntu" ;; *) DESKTOP="none" ;;
+            1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; 7) DESKTOP="edubuntu" ;; 8) DESKTOP="cinnamon" ;; *) DESKTOP="none" ;;
         esac
     else
         echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Ninguno"
@@ -526,6 +581,7 @@ if [[ "$DESKTOP" != "none" ]]; then
             lxqt) apt-get install -y lubuntu-desktop ;;
             budgie) apt-get install -y ubuntu-budgie-desktop ;;
             edubuntu) apt-get install -y edubuntu-desktop ;;
+            cinnamon) apt-get install -y ubuntucinnamon-desktop ;;
         esac
     else
         apt-get install -y task-${DESKTOP}-desktop

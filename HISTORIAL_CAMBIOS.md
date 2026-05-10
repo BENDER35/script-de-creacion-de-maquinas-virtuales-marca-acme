@@ -46,3 +46,12 @@ Este documento detalla la evolución del script `create_vm.sh` y las tareas real
     *   **Soporte para Edubuntu**: Inclusión del sabor educativo de Ubuntu (**Edubuntu**) en la selección de escritorios bajo la opción `gnome(edub.)`.
     *   **Mejora de la Interfaz CLI**: Optimización del menú interactivo para que solicite todos los parámetros de hardware si no se pasan por línea de comandos.
     *   **Actualización Documental**: Revisión completa de la documentación técnica, README e historial para integrar estos cambios, enfocándolos a cursos de sistemas, programación, seguridad y microinformática.
+
+*   **20:15** - **Implementación de Ubuntu Cinnamon y Mejoras en Mirrors**:
+    *   **Nuevo Sabor**: Inclusión del escritorio **Cinnamon** para Ubuntu bajo la opción `cinnamon(ub)`.
+    *   **Optimización de Mirrors**: 
+        *   **Opción L**: Implementación de búsqueda por geolocalización IP para mirrors nacionales.
+        *   **Opción B**: Implementación de benchmarking paralelo para testeo de velocidad real.
+    *   **Aprovisionamiento**: Configuración de la fase chroot para instalar el paquete `ubuntucinnamon-desktop` (corregido).
+    *   **Interfaz CLI**: Actualización del menú interactivo y la ayuda del script para reflejar la nueva opción.
+    *   **Consistencia Documental**: Sincronización de la documentación técnica e historial de cambios.

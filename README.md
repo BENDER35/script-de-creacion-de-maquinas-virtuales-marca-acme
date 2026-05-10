@@ -24,7 +24,7 @@ Herramienta educativa para la automatización de despliegues Linux mediante `deb
 Este proyecto es un laboratorio de aprendizaje avanzado:
 
 *   **Sistemas y Microinformática:** Configuración de hardware virtual (CPU, RAM, Disco), particionado de discos, sistemas de archivos (EXT4), montajes de dispositivos loop, y administración de recursos.
-*   **Sabores de Linux:** Entenderás la diferencia entre las versiones estándar y los "sabores" educativos como **Edubuntu**, diseñados para fines pedagógicos específicos.
+*   **Sabores de Linux:** Entenderás la diferencia entre las versiones estándar y los "sabores" como **Edubuntu** (educativo) o **Cinnamon** (clásico/moderno), diseñados para fines pedagógicos específicos.
 *   **Gestión de Software Moderno:** Aprenderás a integrar y solucionar problemas de dependencias en gestores de paquetes de nueva generación como **Flatpak** (aislamiento/sandboxing), **Snap** (servicios) y **Extrepo** (repositorios externos curados).
 *   **Ciberseguridad:** Gestión de repositorios de seguridad, firma de paquetes mediante GPG (método `signed-by`), gestión de identidades y privilegios (`sudo`), y auditoría mediante logs detallados.
 *   **Programación:** Automatización avanzada en Bash, generación dinámica de scripts (Heredocs), manejo de flujos de E/S (redirecciones de descriptores) y control de errores mediante señales (`traps`).
