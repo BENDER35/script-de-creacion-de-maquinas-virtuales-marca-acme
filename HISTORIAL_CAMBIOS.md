@@ -2,6 +2,25 @@
 
 Este documento detalla la evolución del script `create_vm.sh` y las tareas realizadas en el proyecto.
 
+## [1.2.7] - 2026-05-11
+### Corregido
+- **Fallo Crítico de Arranque (Blinking Cursor)**: Se ha corregido un error de escape en el bloque Heredoc que impedía que `grub-install` recibiera el dispositivo correcto. Ahora las variables posicionales (`$1`) se evalúan correctamente dentro del entorno `chroot`.
+- **Preconfiguración de Debconf**: La selección automática del dispositivo para `grub-pc` ahora se realiza de forma efectiva, evitando bloqueos interactivos durante la instalación del kernel.
+
+### Modificado
+- **Refuerzo de Documentación**: Actualización exhaustiva del README y la Documentación Técnica con un enfoque renovado en la formación profesional (Sistemas, Programación y Ciberseguridad).
+
+## [1.2.6] - 2026-05-10
+### Añadido
+- **Conectividad Automática**: Implementación de la "Opción 1" de red. Configuración nativa de DHCP mediante Netplan (Ubuntu) e `/etc/network/interfaces` (Debian).
+- **Optimización de Hardware Virtual**: Cambio del tipo de adaptador de red a `virtio` en VirtualBox para maximizar el rendimiento y la detección en sistemas modernos.
+
+### Corregido
+- **Falta de Internet**: Solucionado el problema donde las máquinas arrancaban sin interfaz de red activa por ausencia de configuración en el sistema base.
+
+### Modificado
+- **Reversión de APT**: Se ha revertido el cambio en la expansión de variables para paquetes APT y Guest Tools, volviendo al comportamiento anterior a la v1.2.5 para mantener la compatibilidad con flujos de trabajo específicos.
+
 ## [1.2.5] - 2026-05-10
 ### Añadido
 - **Robustez en Chroot**: Creación preventiva del directorio `/etc/initramfs-tools/conf.d` para evitar fallos de post-instalación en paquetes que gestionan el arranque (como Plymouth).

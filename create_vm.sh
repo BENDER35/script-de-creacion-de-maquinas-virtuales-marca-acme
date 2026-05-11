@@ -502,6 +502,41 @@ fi
 echo "Actualizando listas de paquetes..."
 apt-get update
 
+echo "Configurando red (Opción 1: Nativa)..."
+if [[ "$OS" == "ubuntu" ]]; then
+    echo "Instalando netplan.io..."
+    apt-get install -y netplan.io
+    mkdir -p /etc/netplan
+    cat <<EOF_NET > /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    all-interfaces:
+      match:
+        name: "e*"
+      dhcp4: true
+EOF_NET
+    chmod 600 /etc/netplan/01-netcfg.yaml
+else
+    echo "Instalando ifupdown..."
+    apt-get install -y ifupdown
+    cat <<EOF_NET > /etc/network/interfaces
+auto lo
+iface lo inet loopback
+
+# Configuración para interfaces comunes (enp0s3, eth0, etc.)
+allow-hotplug enp0s3
+iface enp0s3 inet dhcp
+
+allow-hotplug eth0
+iface eth0 inet dhcp
+
+allow-hotplug enp0s8
+iface enp0s8 inet dhcp
+EOF_NET
+fi
+
 # Pre-crear directorios que suelen causar fallos en scripts de post-instalación de paquetes (como plymouth)
 mkdir -p /etc/initramfs-tools/conf.d
 
@@ -546,7 +581,7 @@ echo "$VM_USER:$VM_PASS" | chpasswd
 
 echo "Instalando kernel y grub..."
 # Pre-configurar grub-pc
-echo "grub-pc grub-pc/install_devices multiselect $1" | debconf-set-selections
+echo "grub-pc grub-pc/install_devices multiselect \$1" | debconf-set-selections
 echo "grub-pc grub-pc/install_devices_empty boolean false" | debconf-set-selections
 apt-get install -y $KERNEL_PKGS
 
@@ -558,7 +593,7 @@ else
     echo "GRUB_DISABLE_OS_PROBER=true" >> /etc/default/grub
 fi
 
-grub-install --target=i386-pc --force --modules=part_msdos "$1"
+grub-install --target=i386-pc --force --modules=part_msdos "\$1"
 update-grub
 
 echo "Instalando herramientas básicas..."
@@ -567,8 +602,8 @@ apt-get install -y openssh-server curl git wget
 echo "Instalando Guest Tools ($HYPERVISOR)..."
 # Install guest tools individually to prevent one missing package from failing the whole build
 for pkg in $G_PKG; do
-    echo "Intentando instalar $pkg..."
-    apt-get install -y $pkg || echo "Advertencia: No se pudo instalar $pkg"
+    echo "Intentando instalar \$pkg..."
+    apt-get install -y \$pkg || echo "Advertencia: No se pudo instalar \$pkg"
 done
 
 # Reparar dependencias rotas si las hay antes de paquetes opcionales
@@ -578,7 +613,7 @@ apt-get install -f -y
 if [[ -n "$OPT_APT" ]]; then 
     echo "Instalando paquetes APT opcionales..."
     for p in ${OPT_APT//,/ }; do
-        apt-get install -y $p || echo "Error instalando $p"
+        apt-get install -y \$p || echo "Error instalando \$p"
     done
 fi
 
