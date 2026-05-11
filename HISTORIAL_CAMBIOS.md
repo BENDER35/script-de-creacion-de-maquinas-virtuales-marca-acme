@@ -2,6 +2,15 @@
 
 Este documento detalla la evolución del script `create_vm.sh` y las tareas realizadas en el proyecto.
 
+## [1.2.8] - 2026-05-11
+### Añadido
+- **Almacenamiento Avanzado**: Incorporación de una unidad óptica virtual vacía en el controlador SATA (puerto 1) para VirtualBox. Esto facilita el montaje posterior de ISOs de herramientas o datos sin reconfigurar la VM.
+- **Guía de Transición**: Nueva sección en la documentación orientada a usuarios que migran de Windows a Linux.
+
+### Modificado
+- **Expansión Documental**: Reestructuración completa de README y Documentación Técnica para cubrir las necesidades de alumnos de Sistemas (SMR/ASIR), Ciberseguridad, Programación y Microinformática.
+- **Bibliografía Ampliada**: Inclusión de recursos específicos para la transición desde Windows y aprendizaje profundo de sistemas.
+
 ## [1.2.7] - 2026-05-11
 ### Corregido
 - **Fallo Crítico de Arranque (Blinking Cursor)**: Se ha corregido un error de escape en el bloque Heredoc que impedía que `grub-install` recibiera el dispositivo correcto. Ahora las variables posicionales (`$1`) se evalúan correctamente dentro del entorno `chroot`.

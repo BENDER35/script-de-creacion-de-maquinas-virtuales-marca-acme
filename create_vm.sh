@@ -725,6 +725,8 @@ if [[ "$HYPERVISOR" == "vbox" ]]; then
         log "Adjuntando disco duro..." "DEBUG"
         VBoxManage storagectl "$NAME" --name "SATA" --add sata
         VBoxManage storageattach "$NAME" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "$VM_PATH/${NAME}.vdi"
+        log "Adjuntando unidad óptica vacía..." "DEBUG"
+        VBoxManage storageattach "$NAME" --storagectl "SATA" --port 1 --device 0 --type dvddrive --medium emptydrive
     else
         log "VBoxManage no encontrado, saltando registro de VM. El disco está en $RAW_DISK" "WARNING"
     fi
