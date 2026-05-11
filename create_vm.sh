@@ -351,8 +351,8 @@ read -p "¿Repositorio extrepo? (ej: vscode,signal) [ninguno]: " EXTREPOS
 if [[ -z "$DESKTOP" ]]; then
     if [[ "$OS" == "ubuntu" ]]; then
         while true; do
-            echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Kylin 10) MATE 11) Ninguno"
-            read -p "Selecciona escritorio [11]: " desk_opt
+            echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Kylin 10) MATE 11) KDE(studio) 12) Ninguno"
+            read -p "Selecciona escritorio [12]: " desk_opt
             case $desk_opt in
                 1) DESKTOP="gnome"; break ;;
                 2) DESKTOP="kde"; break ;;
@@ -374,6 +374,7 @@ if [[ -z "$DESKTOP" ]]; then
                         continue
                     fi
                     ;;
+                11) DESKTOP="ubuntustudio"; break ;;
                 *) DESKTOP="none"; break ;;
             esac
         done
@@ -666,6 +667,7 @@ if [[ "$DESKTOP" != "none" ]]; then
             cinnamon) apt-get install -y ubuntucinnamon-desktop ;;
             kylin) apt-get install -y ubuntukylin-desktop ;;
             mate) apt-get install -y ubuntu-mate-desktop ;;
+            ubuntustudio) apt-get install -y ubuntustudio-desktop ubuntustudio-default-settings ;;
         esac
     else
         apt-get install -y task-${DESKTOP}-desktop

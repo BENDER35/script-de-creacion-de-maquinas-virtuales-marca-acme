@@ -2,6 +2,12 @@
 
 Este documento detalla la evolución del script `create_vm.sh` y las tareas realizadas en el proyecto.
 
+## [1.2.9] - 2026-05-11
+### Añadido
+- **Sabor Multimedia**: Incorporación de la opción **KDE(studio)** para Ubuntu, facilitando la creación de entornos de producción multimedia.
+- **Configuración Automática**: Instalación de `ubuntustudio-desktop` y `ubuntustudio-default-settings` para asegurar una experiencia de usuario optimizada desde el primer arranque.
+- **Bibliografía Educativa**: Expansión masiva de recursos para perfiles de Sistemas, Programación, Ciberseguridad, Microinformática e interesados en la transición desde Windows.
+
 ## [1.2.8] - 2026-05-11
 ### Añadido
 - **Almacenamiento Avanzado**: Incorporación de una unidad óptica virtual vacía en el controlador SATA (puerto 1) para VirtualBox. Esto facilita el montaje posterior de ISOs de herramientas o datos sin reconfigurar la VM.

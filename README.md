@@ -13,6 +13,7 @@ Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) 
 ## 🚀 Características Principales
 *   **Automatización Total:** De la ISO (vía mirror) al disco virtual (VDI/VMDK/QCOW2) sin intervención manual.
 *   **Almacenamiento Avanzado (v1.2.8):** Configuración automática de controlador SATA con una **unidad óptica virtual vacía** incluida, ideal para prácticas de microinformática.
+*   **Ubuntu Studio (v1.2.9):** Opción **KDE(studio)** para laboratorios creativos, instalando automáticamente el escritorio y sus parámetros por defecto.
 *   **Arranque Garantizado:** Lógica de instalación de GRUB optimizada para evitar fallos de arranque en discos virtuales.
 *   **Conectividad Plug&Play:** Configuración automática de red (Netplan/Ifupdown) y drivers VirtIO.
 *   **Ecosistema Moderno:** Soporte nativo para Flatpak, Snap y repositorios Extrepo.
@@ -22,7 +23,7 @@ Si estás acostumbrado a Windows, aquí tienes unas claves para orientarte:
 1.  **Sin letras de unidad:** No busques el `C:`, todo empieza en la raíz `/`.
 2.  **El poder de la Terminal:** La terminal de Linux es mucho más potente que el CMD. Este script es un ejemplo de cómo automatizar tareas complejas.
 3.  **Software Seguro:** En Linux, el software se instala desde "repositorios" oficiales, como una tienda de apps pero gratuita y segura.
-4.  **Personalización:** Puedes elegir entre muchos "escritorios" (GNOME, KDE, XFCE). ¡Pruébalos todos con este script!
+4.  **Personalización:** Puedes elegir entre muchos "escritorios" (GNOME, KDE, XFCE, KDE Studio). ¡Pruébalos todos con este script!
 
 ## 🛠️ Guía de Inicio para Estudiantes
 Construye tu primer laboratorio virtual ejecutando:
@@ -33,15 +34,30 @@ sudo ./create_vm.sh
 
 ## 📚 Bibliografía y Recursos de Aprendizaje
 
-### Administración de Sistemas y Linux
+### 🛠️ Sistemas y Administración
 1.  **Debian Handbook:** La guía definitiva del administrador Linux. [Acceso gratuito](https://www.debian.org/doc/manuals/debian-handbook/index.es.html).
-2.  **Linux Journey:** Aprende Linux paso a paso de forma interactiva. [linuxjourney.com](https://linuxjourney.com/).
-3.  **The Linux Command Line:** El libro esencial para dominar la terminal. [linuxcommand.org](https://linuxcommand.org/tlcl.php).
+2.  **Arch Wiki:** Aunque uses Debian/Ubuntu, es el mejor recurso sobre conceptos generales de Linux. [wiki.archlinux.org](https://wiki.archlinux.org/).
+3.  **Linux Journey:** Aprende Linux paso a paso de forma interactiva. [linuxjourney.com](https://linuxjourney.com/).
 
-### Automatización, Programación y Seguridad
-4.  **ShellCheck:** Analiza y mejora tus scripts de Bash. [shellcheck.net](https://www.shellcheck.net/).
-5.  **OWASP DevSecOps:** Seguridad en el ciclo de desarrollo y automatización.
-6.  **Google Shell Style Guide:** Estándares profesionales de programación en Shell.
+### 💻 Programación y Desarrollo
+4.  **The Linux Command Line:** El libro esencial para dominar la terminal. [linuxcommand.org](https://linuxcommand.org/tlcl.php).
+5.  **Google Shell Style Guide:** Estándares profesionales de programación en Shell.
+6.  **Full Stack Open:** Curso excelente que cubre despliegue en entornos Linux/Docker. [fullstackopen.com](https://fullstackopen.com/es/).
+
+### 🛡️ Ciberseguridad
+7.  **OverTheWire (Bandit):** Aprende seguridad y terminal mediante juegos de retos. [overthewire.org](https://overthewire.org/wargames/bandit/).
+8.  **Hack The Box Academy:** Fundamentos de Linux para ciberseguridad.
+9.  **OWASP DevSecOps:** Seguridad en el ciclo de desarrollo y automatización.
+
+### 🔌 Microinformática y Hardware Virtual
+10. **VBoxManage Reference:** Control total de VirtualBox desde CLI. [virtualbox.org](https://www.virtualbox.org/manual/ch08.html).
+11. **Proxmox Documentation:** Aprende sobre virtualización de nivel empresarial.
+12. **CompTIA A+ Study Guide:** Conceptos de hardware aplicables a entornos virtuales.
+
+### 🐧 Interesados en Linux (Transición desde Windows)
+13. **Linux Journey (Español):** Guía visual para principiantes.
+14. **Ubuntu Community Help:** Soluciones a problemas comunes al migrar.
+15. **AlternativeTo:** Encuentra el equivalente en Linux de tus apps de Windows. [alternativeto.net](https://alternativeto.net/).
 
 ---
 *Desarrollado como herramienta de apoyo para la formación profesional en informática y comunicaciones.*

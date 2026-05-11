@@ -11,6 +11,7 @@ El script `create_vm.sh` ha evolucionado para incluir mecanismos de "autocuraci�
 *   **Red Nativa e Interoperabilidad:** Configuración DHCP mediante Netplan (Ubuntu) e `ifupdown` (Debian). El uso de drivers **VirtIO** asegura que las prácticas de redes y ciberseguridad se realicen con el máximo rendimiento de red posible.
 *   **Preparación del Entorno Mínimo:** Se pre-crean estructuras críticas como `/etc/initramfs-tools/conf.d`, evitando errores comunes en sistemas Debian/Ubuntu modernos que utilizan Plymouth para el arranque gráfico.
 *   **Recuperación Automática:** El script incluye `dpkg --configure -a` para garantizar la consistencia del sistema antes de instalar entornos de escritorio (GNOME, KDE, XFCE) o software opcional.
+*   **Ubuntu Studio (KDE studio):** Se ha integrado soporte para el sabor orientado a la producción multimedia. La instalación no solo incluye el entorno de escritorio, sino también el paquete `ubuntustudio-default-settings`, que pre-configura el sistema para un rendimiento óptimo en tareas creativas y de baja latencia.
 
 ## 2. Gestión de Paquetes Modernos
 
