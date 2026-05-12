@@ -2,6 +2,13 @@
 
 Este documento detalla la evolución del script `create_vm.sh` y las tareas realizadas en el proyecto.
 
+## [1.3.1] - 2026-05-12
+### Añadido
+- **Sabor Ubuntu Unity**: Incorporación de la opción **Unity** para Ubuntu (`ubuntu-unity-desktop`). 
+- **Sistema de Advertencias**: Implementación de un aviso específico para el sabor Unity, informando sobre su estado de soporte no-LTS y la situación del equipo de desarrollo.
+- **Bibliografía Expandida**: Inclusión de recursos masivos para estudiantes de Sistemas, Programación, Ciberseguridad, Microinformática y perfiles creativos (diseño, ilustración, streaming).
+- **Recursos de Migración**: Nuevos enlaces y bibliografía para facilitar la transición desde Windows a Linux.
+
 ## [1.3.0] - 2026-05-11
 ### Añadido
 - **Interfaz de Línea de Comandos (CLI)**: Implementación de parámetros robustos (`--name`, `--os`, `--desktop`, `--flatpak`, etc.) para permitir ejecuciones no interactivas.

@@ -353,8 +353,8 @@ read -p "¿Repositorio extrepo? (ej: vscode,signal) [ninguno]: " EXTREPOS
 if [[ -z "$DESKTOP" ]]; then
     if [[ "$OS" == "ubuntu" ]]; then
         while true; do
-            echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Kylin 10) MATE 11) KDE(studio) 12) Ninguno"
-            read -p "Selecciona escritorio [12]: " desk_opt
+            echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Kylin 10) MATE 11) KDE(studio) 12) Unity 13) Ninguno"
+            read -p "Selecciona escritorio [13]: " desk_opt
             case $desk_opt in
                 1) DESKTOP="gnome"; break ;;
                 2) DESKTOP="kde"; break ;;
@@ -377,6 +377,17 @@ if [[ -z "$DESKTOP" ]]; then
                     fi
                     ;;
                 11) DESKTOP="ubuntustudio"; break ;;
+                12)
+                    echo "AVISO, debido a la situacion personal del equipo desarrollador del sabor unity de ubuntu (los que dirigen el proyecto aun estan haciendo los estudios universitarios), esta distro han sacado la 26.04 con una salvedad, NO ES LTS, con lo cual el kernel de este sabor o edicion es posible que se quede fija en la version 7 y reciba actualizaciones de programas pero no del nucleo del sistema (el kernel), mientras reciba actualizaciones de programas es utilizable, pero que sepas que las maquinas virtuales (y la maquina fisica que instales) no recibira actualizaciones de kernel ni de funciones ni de seguridad, si decides continuar creando la maquina, ten en cuenta eso. estos estan en una situacion menos complicada que la de ubuntu mate (o sea, que pueden sobrevivir), pero es posible que por un casual (version continua o LTS), este sabor se quite de la oferta de canonical y posteriormente sea retirado del script, si aceptas crear la maquina dale a S, si no, dale a N para volver a la seleccion de escritorios"
+                    read -n 1 -p "Opción: " confirm_unity; echo ""
+                    if [[ "$confirm_unity" == "s" || "$confirm_unity" == "S" ]]; then
+                        DESKTOP="unity"
+                        break
+                    else
+                        echo "Regresando a la selección de escritorios..."
+                        continue
+                    fi
+                    ;;
                 *) DESKTOP="none"; break ;;
             esac
         done
@@ -670,6 +681,7 @@ if [[ "$DESKTOP" != "none" ]]; then
             cinnamon) apt-get install -y ubuntucinnamon-desktop ;;
             kylin) apt-get install -y ubuntukylin-desktop ;;
             mate) apt-get install -y ubuntu-mate-desktop ;;
+            unity) apt-get install -y ubuntu-unity-desktop ;;
             ubuntustudio) apt-get install -y ubuntustudio-desktop ubuntustudio-default-settings ;;
         esac
     else
