@@ -1,39 +1,38 @@
 # VM-Acme: Generador de Laboratorios Virtuales para FP y Universidad
 
-![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)
-![Field](https://img.shields.io/badge/fines-Educativos/Sistemas/Ciberseguridad-green.svg)
+![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)
+![Field](https://img.shields.io/badge/fines-Educativos/Sistemas/Creativos-green.svg)
 
-Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) personalizadas de forma totalmente automatizada. Es un recurso pedagógico diseñado para estudiantes y profesionales de:
+Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) personalizadas de forma totalmente automatizada. Es un recurso pedagógico y profesional diseñado para:
 
-*   **Sistemas y Microinformática:** Aprende cómo se construye un sistema operativo desde sus cimientos mediante `debootstrap` y cómo configurar el almacenamiento (Controlador SATA) y periféricos (Unidad Óptica).
-*   **Programación:** Automatiza la creación de entornos de desarrollo limpios (sandboxes) para probar scripts o aplicaciones en diferentes distribuciones. Aprende lógica de scripting profesional.
-*   **Ciberseguridad:** Genera rápidamente laboratorios de prácticas para análisis forense, pentesting o análisis de servicios con aislamiento garantizado mediante sandboxing (Flatpak).
-*   **Artistas, Ilustradores y Creadores Digitales:** Si te dedicas al diseño, la ilustración o el streaming, este script te permite desplegar **Ubuntu Studio**, un entorno profesional pre-configurado, o **Unity** para una experiencia clásica. El ecosistema Linux es el estándar en la industria del cine y VFX.
-*   **Nuevos Usuarios de Linux:** Si vienes de Windows, este script te permite experimentar con Linux de forma segura, estructurada y sin miedo a "romper" tu sistema principal.
+*   **Sistemas, Ciberseguridad y Microinformática:** Aprende la arquitectura de Linux desde sus cimientos (`debootstrap`). Genera laboratorios aislados y seguros (Sandboxing) para prácticas de redes o forense.
+*   **Programación y DevOps:** Automatiza entornos de desarrollo reproducibles. El script es un caso de estudio real de scripting avanzado en Bash y despliegue automatizado.
+*   **Migrantes de Windows (Hogar y Oficina):** Experimenta con Linux de forma segura. Descubre una estructura jerárquica lógica y un sistema libre de virus y telemetría intrusiva.
+*   **Creativos (Diseño, Edición, Ilustración, Streaming):** 
+    *   **Salvavidas Económico:** Si tu equipo no soporta Windows 11 o las últimas versiones de Adobe, Linux (vía Ubuntu Studio) te ofrece un rendimiento profesional en hardware "antiguo".
+    *   **Estándar de la Industria:** Linux es el motor de los grandes estudios de efectos visuales (VFX) y animación.
 
 ## 🚀 Características Principales
-*   **Automatización Total:** De la ISO (vía mirror) al disco virtual (VDI/VMDK/QCOW2) sin intervención manual.
-*   **Modo No Interactivo (v1.3.0):** Soporte completo para parámetros por línea de comandos, facilitando la integración en scripts de mayor nivel.
-*   **Gestión Inteligente de Flatpak (v1.3.0):** Resolución automática de IDs de aplicaciones. Instala `vlc`, `spotify` o `bottles` simplemente tecleando su nombre.
-*   **Almacenamiento Avanzado:** Configuración automática de controlador SATA con una **unidad óptica virtual vacía** incluida, ideal para prácticas de microinformática.
-*   **Ubuntu Studio y Unity:** Soporte para el sabor creativo de Ubuntu y la interfaz clásica Unity. Incluye advertencias pedagógicas sobre ciclos de vida de software (LTS vs No-LTS).
-*   **Ecosistema Moderno:** Soporte nativo para Flatpak, Snap y repositorios Extrepo.
+*   **Gestión Dinámica de Red (v1.3.2):** Detección automática de entorno gráfico para habilitar `NetworkManager`. ¡Dile adiós a los problemas de red tras la instalación!
+*   **Automatización Total:** De la descarga (vía mirror inteligente) al disco virtual listo para arrancar.
+*   **Soporte Multimedia Avanzado:** Despliega **Ubuntu Studio** para audio de baja latencia o **Unity** para una experiencia clásica.
+*   **Software Moderno:** Integración de Flatpak (con búsqueda inteligente), Snap y Extrepo.
+*   **Almacenamiento Profesional:** Controlador SATA con unidad óptica virtual incluida para prácticas de rescate de sistemas.
 
-## 🪟 ¿Vienes de Windows? Tu primer paso en Linux
-Si estás acostumbrado a Windows, la transición puede parecer un reto, pero Linux ofrece una libertad sin igual:
-1.  **Sin letras de unidad:** No busques el `C:`, todo empieza en la raíz `/`. Es una estructura jerárquica más lógica una vez que la conoces.
-2.  **El poder de la Terminal:** La terminal de Linux es una herramienta de precisión, no un "último recurso". Este script es un ejemplo de cómo automatizar en segundos lo que en Windows llevaría horas de clics.
-3.  **Software Seguro y Centralizado:** En Linux, el software se instala desde "repositorios" oficiales o formatos modernos como Flatpak, eliminando el riesgo de descargar instaladores `.exe` maliciosos.
-4.  **Aislamiento (Sandboxing):** Con Flatpak, las aplicaciones corren en una "caja de arena", protegiendo tu sistema operativo de posibles fallos o vulnerabilidades de la app.
-5.  **Entorno Creativo Profesional:** Si vienes de usar Windows para diseño o streaming, **Ubuntu Studio** te ofrece un kernel de baja latencia (optimizado para audio) y software como Krita, Blender y OBS pre-instalados o listos para usar con un rendimiento profesional.
+## 🪟 Guía de Supervivencia para Usuarios de Windows
+Si vienes de Windows por necesidad o curiosidad, aquí tienes tus puntos de orientación:
+1.  **Tu casa es `/home/usuario`:** Olvida el `C:`. Tus archivos están en tu carpeta personal dentro de `/home`.
+2.  **El Centro de Software es tu "Tienda":** No busques instaladores por internet. Todo el software profesional (Krita, OBS, Blender, Kdenlive) está a un clic en los repositorios oficiales.
+3.  **Rendimiento Real:** Donde Windows se "atasca" con actualizaciones pesadas, Linux vuela. Es ideal para dar una segunda vida a portátiles de hace 5-8 años.
+4.  **Libertad y Privacidad:** Tú tienes el control total del sistema. Sin actualizaciones forzadas ni publicidad en el menú de inicio.
 
 ## 🛠️ Guía de Inicio Rápido
-Construye tu primer laboratorio virtual con un solo comando:
+Crea tu entorno creativo o técnico con un solo comando:
 ```bash
-# Ejemplo para crear una VM Ubuntu con GNOME y VLC
-sudo ./create_vm.sh --name laboratorio_progra --os ubuntu --desktop gnome --flatpak vlc
+# Ejemplo: Ubuntu con escritorio XFCE (muy ligero) y software de edición
+sudo ./create_vm.sh --name estudio_creativo --os ubuntu --desktop xfce --flatpak kdenlive,krita,obs-studio
 ```
-*Nota: Se requieren privilegios de superusuario para gestionar dispositivos de bloque y entornos chroot.*
+*Nota: Se requieren privilegios de superusuario (sudo) para la construcción de la imagen.*
 
 ## 📚 Bibliografía y Recursos de Aprendizaje
 

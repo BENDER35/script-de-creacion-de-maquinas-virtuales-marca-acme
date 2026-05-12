@@ -520,11 +520,17 @@ echo "Configurando red (Opción 1: Nativa)..."
 if [[ "$OS" == "ubuntu" ]]; then
     echo "Instalando netplan.io..."
     apt-get install -y netplan.io
+    RENDERER="networkd"
+    if [[ "$DESKTOP" != "none" ]]; then
+        echo "Detectado entorno gráfico, instalando NetworkManager..."
+        apt-get install -y network-manager
+        RENDERER="NetworkManager"
+    fi
     mkdir -p /etc/netplan
     cat <<EOF_NET > /etc/netplan/01-netcfg.yaml
 network:
   version: 2
-  renderer: networkd
+  renderer: $RENDERER
   ethernets:
     all-interfaces:
       match:

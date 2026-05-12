@@ -2,6 +2,16 @@
 
 Este documento detalla la evolución del script `create_vm.sh` y las tareas realizadas en el proyecto.
 
+## [1.3.2] - 2026-05-12
+### Corregido
+- **Gestión de Red en Entorno Gráfico**: Se ha corregido el problema de invisibilidad del gestor de redes en el escritorio de Ubuntu. El script ahora conmuta dinámicamente el renderizador de Netplan a `NetworkManager` cuando se instala un entorno gráfico, asegurando la integración con la UI.
+
+### Modificado
+- **Documentación Multidisciplinar**: Actualización profunda de README y Documentación Técnica con guías específicas para:
+  - Estudiantes de IT (Sistemas, Ciberseguridad, Programación).
+  - Usuarios migrados de Windows (guía de supervivencia).
+  - Profesionales Creativos (Diseño, Vídeo, Streaming) que requieren alto rendimiento en hardware antiguo por motivos económicos.
+
 ## [1.3.1] - 2026-05-12
 ### Añadido
 - **Sabor Ubuntu Unity**: Incorporación de la opción **Unity** para Ubuntu (`ubuntu-unity-desktop`). 

@@ -1,48 +1,38 @@
 # Documentación Técnica: Automatización de Infraestructura (Marca Acme)
 
-Esta documentación está diseñada para estudiantes de **Sistemas**, **Ciberseguridad**, **Programación** y **Microinformática** que deseen entender cómo orquestar la creación de entornos Linux de forma profesional y resiliente.
+Esta documentación está diseñada para estudiantes de **Sistemas**, **Ciberseguridad**, **Programación** y **Microinformática**, así como para **migrantes de Windows** y **profesionales creativos** que buscan una alternativa potente y económica.
 
-## 1. Arquitectura y Robustez (v1.3.1)
+## 1. Arquitectura y Robustez (v1.3.2)
 
 El script `create_vm.sh` ha evolucionado para incluir mecanismos de "autocuración" y preparación de entornos avanzados:
 
 *   **Interfaz de Línea de Comandos (CLI):** Se ha implementado un sistema de parseo de argumentos que permite el uso de flags como `--name`, `--os`, `--desktop` y `--flatpak`. Esto permite la integración del script en flujos de CI/CD o scripts de automatización superiores, una competencia esencial en **DevOps**.
 *   **Gestión Inteligente de Almacenamiento:** Se ha estandarizado el uso de controladores SATA para VirtualBox. Además del disco duro principal (`.vdi`), el script adjunta automáticamente una **unidad óptica virtual vacía**. Esto permite a los estudiantes de microinformática practicar el montaje de imágenes ISO (como GParted o discos de rescate) de forma dinámica.
-*   **Configuración de Red e Interoperabilidad:** Configuración DHCP mediante Netplan (Ubuntu) e `ifupdown` (Debian). El uso de drivers **VirtIO** asegura un rendimiento óptimo en laboratorios de redes y ciberseguridad.
+*   **Gestión Dinámica de Red (NetworkManager):** A partir de la v1.3.2, el script detecta si se ha seleccionado un escritorio gráfico. De ser así, configura Netplan para usar `NetworkManager` como renderizador, asegurando que el icono de red y la gestión desde la UI de GNOME/KDE/XFCE funcionen correctamente. En modo servidor (sin escritorio), mantiene `networkd` para mayor ligereza.
 *   **Ubuntu Studio y Unity:** Soporte integrado para laboratorios creativos y nostálgicos. Unity se ofrece con una advertencia específica sobre su ciclo de vida no-LTS, ideal para el estudio de distribuciones comunitarias. Ubuntu Studio optimiza el sistema con un kernel de baja latencia, vital para el audio profesional y el streaming.
 
 ## 2. Gestión de Paquetes y Sandboxing
+... (mantener igual) ...
 
-El script integra tecnologías de vanguardia para la distribución y aislamiento de software:
+## 3. Guía de Orientación por Perfiles
 
-### Flatpak: Resolución de IDs y Aislamiento (v1.3.0)
-*   **Lógica de Búsqueda:** El script utiliza `flatpak search --columns=application` para resolver nombres comunes (ej: `vlc`) a Application IDs unívocos (ej: `org.videolan.VLC`). Esto simplifica drásticamente la experiencia del usuario final.
-*   **Relevancia en Ciberseguridad:** El uso de `bubblewrap` para el sandboxing es un concepto fundamental en la seguridad de aplicaciones moderna. Estudiar cómo se instala Flatpak en un entorno `chroot` ayuda a comprender los niveles de aislamiento del kernel Linux.
+### A. Estudiantes de IT (Sistemas, Redes, Ciberseguridad)
+*   **Microinformática:** El script automatiza la creación de discos `.vdi` y `.vmdk`, permitiendo entender la diferencia entre formatos de virtualización.
+*   **Ciberseguridad:** Crear máquinas "limpias" mediante debootstrap minimiza la superficie de ataque. Aprender a usar `flatpak` y `bubblewrap` es vital para el aislamiento de procesos.
+*   **Programación:** El uso de *Heredocs* y la gestión de variables en Bash es un caso de estudio real sobre automatización de despliegues.
 
-### Snap: Contenedores de Aplicación
-*   **Relevancia en Programación:** Permite gestionar herramientas de desarrollo con dependencias aisladas. El script prepara el entorno para que el demonio `snapd` pueda operar correctamente tras el primer arranque.
+### B. Migrantes desde Windows (Guía de Supervivencia)
+*   **¿Dónde están mis discos (C:, D:)?** En Linux todo cuelga de la raíz `/`. Tus archivos están en `/home/usuario`.
+*   **Instalación de programas:** Olvida buscar `.exe` en webs dudosas. Usa el Centro de Software, `apt` o `flatpak`. Es más seguro y rápido.
+*   **El terminal no muerde:** Aunque puedes hacer casi todo con el ratón, el terminal es tu mejor amigo para tareas repetitivas. El script `create_vm.sh` es un ejemplo de ello.
 
-### Extrepo: Gestión de Repositorios Seguros
-*   **Relevancia en Sistemas:** Demuestra cómo gestionar repositorios de terceros de forma segura, utilizando llaves GPG y evitando la contaminación de `sources.list` mediante archivos específicos en `sources.list.d`.
-
-## 3. Guía Pedagógica para Estudiantes
-
-### Para Futuros Programadores
-*   **Análisis del Script:** Observa cómo se utilizan los *Heredocs* (`cat <<CHROOT_SCRIPT`) para inyectar lógica de un entorno (Host) a otro (Guest/Chroot). Es una técnica avanzada de automatización.
-*   **Lógica de Flags:** Estudia el bucle `while [[ "$#" -gt 0 ]]` para entender cómo se procesan parámetros en Bash.
-
-### Para Artistas, Diseñadores e Ilustradores (Migración desde Windows)
-*   **Software Libre vs Propietario:** Entiende cómo herramientas como Krita, GIMP, Inkscape y Blender sustituyen y, en muchos casos, superan los flujos de trabajo tradicionales en Windows.
-*   **Rendimiento de Audio:** Aprende por qué el kernel de baja latencia de Ubuntu Studio es superior para la grabación y el streaming comparado con el modelo de drivers de audio estándar de Windows.
-*   **Producción Profesional:** Linux es el estándar en grandes estudios de efectos visuales (VFX) y animación.
-
-### Para Especialistas en Ciberseguridad
-*   **Análisis de Superficie de Ataque:** Al crear máquinas virtuales limpias con solo el software necesario, estás reduciendo la superficie de ataque, un principio básico de *hardening*.
-*   **Sandboxing:** Entiende por qué es mejor instalar una aplicación vía Flatpak que mediante un `.deb` tradicional cuando no confías plenamente en el origen del software.
-
-### Para Administradores de Sistemas (Linux Newcomers)
-*   **Jerarquía de Archivos:** Aprende que en Linux no hay "Letras de Unidad". Todo es un archivo o un directorio colgando de `/`.
-*   **Permisos y Propietarios:** El script utiliza `chown` y `chmod` para asegurar que el nuevo usuario tenga los permisos correctos en su `/home`.
+### C. Creativos: Diseño, Vídeo y Streaming (El factor económico)
+*   **Hardware antiguo = Rendimiento nuevo:** Si tu PC no puede con Windows 11 o las últimas versiones de Adobe, Linux le dará una segunda vida. Distros como XFCE o MATE consumen una fracción de la RAM que usa Windows.
+*   **Alternativas Profesionales:**
+    *   **Adobe Photoshop -> Krita / GIMP:** Krita es el estándar para ilustración digital. GIMP para edición fotográfica.
+    *   **Adobe Premiere -> DaVinci Resolve / Kdenlive:** Kdenlive es excelente para edición ágil; DaVinci es el estándar de Hollywood disponible en Linux.
+    *   **Streaming -> OBS Studio:** Funciona de forma nativa y más eficiente en Linux.
+    *   **Audio:** El kernel de baja latencia permite grabar audio sin el retardo (latencia) que suele ocurrir en Windows sin drivers ASIO caros.
 
 ## 4. Bibliografía y Recursos Educativos
 
