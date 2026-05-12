@@ -2,6 +2,19 @@
 
 Este documento detalla la evolución del script `create_vm.sh` y las tareas realizadas en el proyecto.
 
+## [1.3.0] - 2026-05-11
+### Añadido
+- **Interfaz de Línea de Comandos (CLI)**: Implementación de parámetros robustos (`--name`, `--os`, `--desktop`, `--flatpak`, etc.) para permitir ejecuciones no interactivas.
+- **Enfoque Creativo**: Expansión de la documentación para Artistas Digitales, Ilustradores y Streamers, destacando las ventajas del kernel de baja latencia de Ubuntu Studio.
+- **Guía de Migración**: Nuevas secciones educativas para facilitar el paso de Windows a Linux en perfiles creativos y técnicos.
+
+### Corregido
+- **Resolución de Flatpaks**: Sustitución de la lógica de búsqueda basada en `awk` por `flatpak search --columns=application`. Ahora el script identifica correctamente los IDs de aplicaciones (ej. `org.videolan.VLC`) incluso con nombres cortos o ambiguos.
+
+### Modificado
+- **Documentación Pedagógica**: Reestructuración de README y Documentación Técnica con un enfoque integral para Sistemas, Programación, Ciberseguridad, Microinformática y Creación Digital.
+- **Bibliografía Multidisciplinar**: Inclusión de recursos especializados para flujos de trabajo creativos y transición desde ecosistemas propietarios.
+
 ## [1.2.9] - 2026-05-11
 ### Añadido
 - **Sabor Multimedia**: Incorporación de la opción **KDE(studio)** para Ubuntu, facilitando la creación de entornos de producción multimedia.

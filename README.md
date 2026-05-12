@@ -1,34 +1,37 @@
 # VM-Acme: Generador de Laboratorios Virtuales para FP y Universidad
 
-![Version](https://img.shields.io/badge/version-1.2.8-blue.svg)
+![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
 ![Field](https://img.shields.io/badge/fines-Educativos/Sistemas/Ciberseguridad-green.svg)
 
 Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) personalizadas de forma totalmente automatizada. Es un recurso pedagógico diseñado para estudiantes y profesionales de:
 
 *   **Sistemas y Microinformática:** Aprende cómo se construye un sistema operativo desde sus cimientos mediante `debootstrap` y cómo configurar el almacenamiento (Controlador SATA) y periféricos (Unidad Óptica).
-*   **Programación:** Automatiza la creación de entornos de desarrollo limpios (sandboxes) para probar scripts o aplicaciones en diferentes distribuciones.
-*   **Ciberseguridad:** Genera rápidamente laboratorios de prácticas para análisis forense, pentesting o análisis de servicios con aislamiento garantizado.
-*   **Nuevos Usuarios de Linux:** Si vienes de Windows, este script te permite experimentar con Linux de forma segura y estructurada.
+*   **Programación:** Automatiza la creación de entornos de desarrollo limpios (sandboxes) para probar scripts o aplicaciones en diferentes distribuciones. Aprende lógica de scripting profesional.
+*   **Ciberseguridad:** Genera rápidamente laboratorios de prácticas para análisis forense, pentesting o análisis de servicios con aislamiento garantizado mediante sandboxing (Flatpak).
+*   **Artistas y Creadores Digitales:** Si eres ilustrador, diseñador o streamer, este script te permite desplegar **Ubuntu Studio**, un entorno profesional pre-configurado con herramientas de baja latencia y software creativo de vanguardia.
+*   **Nuevos Usuarios de Linux:** Si vienes de Windows, este script te permite experimentar con Linux de forma segura, estructurada y sin miedo a "romper" tu sistema principal.
 
 ## 🚀 Características Principales
 *   **Automatización Total:** De la ISO (vía mirror) al disco virtual (VDI/VMDK/QCOW2) sin intervención manual.
-*   **Almacenamiento Avanzado (v1.2.8):** Configuración automática de controlador SATA con una **unidad óptica virtual vacía** incluida, ideal para prácticas de microinformática.
-*   **Ubuntu Studio (v1.2.9):** Opción **KDE(studio)** para laboratorios creativos, instalando automáticamente el escritorio y sus parámetros por defecto.
-*   **Arranque Garantizado:** Lógica de instalación de GRUB optimizada para evitar fallos de arranque en discos virtuales.
-*   **Conectividad Plug&Play:** Configuración automática de red (Netplan/Ifupdown) y drivers VirtIO.
+*   **Modo No Interactivo (v1.3.0):** Soporte completo para parámetros por línea de comandos, facilitando la integración en scripts de mayor nivel.
+*   **Gestión Inteligente de Flatpak (v1.3.0):** Resolución automática de IDs de aplicaciones. Instala `vlc`, `spotify` o `bottles` simplemente tecleando su nombre.
+*   **Almacenamiento Avanzado:** Configuración automática de controlador SATA con una **unidad óptica virtual vacía** incluida, ideal para prácticas de microinformática.
+*   **Ubuntu Studio:** Soporte para el sabor creativo de Ubuntu, facilitando laboratorios de diseño y producción multimedia. Ideal para probar la transición desde herramientas como Adobe o OBS en Windows.
 *   **Ecosistema Moderno:** Soporte nativo para Flatpak, Snap y repositorios Extrepo.
 
-## 🪟 ¿Vienes de Windows?
-Si estás acostumbrado a Windows, aquí tienes unas claves para orientarte:
-1.  **Sin letras de unidad:** No busques el `C:`, todo empieza en la raíz `/`.
-2.  **El poder de la Terminal:** La terminal de Linux es mucho más potente que el CMD. Este script es un ejemplo de cómo automatizar tareas complejas.
-3.  **Software Seguro:** En Linux, el software se instala desde "repositorios" oficiales, como una tienda de apps pero gratuita y segura.
-4.  **Personalización:** Puedes elegir entre muchos "escritorios" (GNOME, KDE, XFCE, KDE Studio). ¡Pruébalos todos con este script!
+## 🪟 ¿Vienes de Windows? Tu primer paso en Linux
+Si estás acostumbrado a Windows, la transición puede parecer un reto, pero Linux ofrece una libertad sin igual:
+1.  **Sin letras de unidad:** No busques el `C:`, todo empieza en la raíz `/`. Es una estructura jerárquica más lógica una vez que la conoces.
+2.  **El poder de la Terminal:** La terminal de Linux es una herramienta de precisión, no un "último recurso". Este script es un ejemplo de cómo automatizar en segundos lo que en Windows llevaría horas de clics.
+3.  **Software Seguro y Centralizado:** En Linux, el software se instala desde "repositorios" oficiales o formatos modernos como Flatpak, eliminando el riesgo de descargar instaladores `.exe` maliciosos.
+4.  **Aislamiento (Sandboxing):** Con Flatpak, las aplicaciones corren en una "caja de arena", protegiendo tu sistema operativo de posibles fallos o vulnerabilidades de la app.
+5.  **Entorno Creativo Profesional:** Si vienes de usar Windows para diseño o streaming, **Ubuntu Studio** te ofrece un kernel de baja latencia (optimizado para audio) y software como Krita, Blender y OBS pre-instalados o listos para usar con un rendimiento profesional.
 
-## 🛠️ Guía de Inicio para Estudiantes
-Construye tu primer laboratorio virtual ejecutando:
+## 🛠️ Guía de Inicio Rápido
+Construye tu primer laboratorio virtual con un solo comando:
 ```bash
-sudo ./create_vm.sh
+# Ejemplo para crear una VM Ubuntu con GNOME y VLC
+sudo ./create_vm.sh --name laboratorio_progra --os ubuntu --desktop gnome --flatpak vlc
 ```
 *Nota: Se requieren privilegios de superusuario para gestionar dispositivos de bloque y entornos chroot.*
 

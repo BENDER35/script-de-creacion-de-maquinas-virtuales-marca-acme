@@ -80,7 +80,8 @@ Opciones:
   --cpucores NUM        Número de núcleos de CPU (defecto: 2).
   --user USER           Usuario del sistema (defecto: arbol).
   --pass PASS           Contraseña del usuario (defecto: tronco).
-  --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, cinnamon, kylin, none (defecto: none).
+  --flatpak PKGS        Lista de paquetes Flatpak separados por comas (ej: vlc,spotify).
+  --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, cinnamon, kylin, mate, edubuntu, ubuntustudio, none (defecto: none).
   --mirror URL          URL del mirror personalizado.
   --verbose             Activa el modo de depuración (set -x).
 
@@ -128,6 +129,7 @@ while [[ "$#" -gt 0 ]]; do
         --cpucores) VM_CPUS="$2"; shift ;;
         --user) VM_USER="$2"; shift ;;
         --pass) VM_PASS="$2"; shift ;;
+        --flatpak) OPT_FLATPAK="$2"; shift ;;
         --desktop) DESKTOP="$2"; shift ;;
         --mirror) SELECTED_MIRROR="$2"; shift ;;
         --verbose) VERBOSE_MODE="s" ;;
@@ -330,9 +332,9 @@ fi
 [[ -z "$VM_PASS" ]] && VM_PASS="tronco"
 
 echo "Software Opcional (presiona Enter para saltar):"
-read -p "Paquetes APT (ej: htop,ncdu) [ninguno]: " OPT_APT
-read -p "Paquetes Flatpak (ej: vlc,spotify) [ninguno]: " OPT_FLATPAK
-read -p "Paquetes Snap (ej: slack,discord) [ninguno]: " OPT_SNAP
+read -p "Paquetes APT (ej: htop,ncdu) [$OPT_APT]: " input_apt; [[ -n "$input_apt" ]] && OPT_APT="$input_apt"
+read -p "Paquetes Flatpak (ej: vlc,spotify) [$OPT_FLATPAK]: " input_flatpak; [[ -n "$input_flatpak" ]] && OPT_FLATPAK="$input_flatpak"
+read -p "Paquetes Snap (ej: slack,discord) [$OPT_SNAP]: " input_snap; [[ -n "$input_snap" ]] && OPT_SNAP="$input_snap"
 
 if [[ -z "$SELECTED_MIRROR" ]]; then
     echo "Mirrors: t) Default y) Manual l) busqueda del mirror mas rapido (por pais) b) busqueda de los mirrors mas rapidos (testeo de red)"
@@ -630,8 +632,9 @@ if [[ -n "$OPT_FLATPAK" ]]; then
             flatpak install -y flathub "\$p" || echo "Error al instalar flatpak \$p"
         else
             echo "Buscando ID para \$p..."
-            ID=\$(flatpak search "\$p" | head -n 1 | awk '{print \$2}')
-            if [[ -n "\$ID" ]]; then
+            # Usar columnas específicas para evitar capturar descripciones como IDs
+            ID=\$(flatpak search --columns=application "\$p" | head -n 1 | xargs)
+            if [[ -n "\$ID" && "\$ID" != "Application ID" ]]; then
                 echo "ID encontrado: \$ID. Instalando..."
                 flatpak install -y flathub "\$ID" || echo "Error al instalar flatpak \$ID"
             else
