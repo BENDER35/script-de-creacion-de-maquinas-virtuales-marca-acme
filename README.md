@@ -16,6 +16,7 @@ Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) 
 *   **Arranque Robusto (v1.4.0):** Corrección del error `normal.mod not found` mediante la reordenación de la instalación de GRUB y la inclusión de módulos críticos (`ext2`, `biosdisk`). ¡Sistemas gráficos que arrancan siempre a la primera!
 *   **Gestión Dinámica de Red:** Detección automática de entorno gráfico para habilitar `NetworkManager`.
 *   **Automatización Total:** De la descarga (vía mirror inteligente) al disco virtual listo para arrancar.
+*   **Gestión de Discos con Precisión (v1.4.0):** Soporte para tamaños decimales (ej: `64,5G`). El script normaliza automáticamente comas y espacios, facilitando la vida a usuarios que vienen de entornos locales donde la coma es el separador estándar.
 *   **Soporte Multimedia Avanzado:** Despliega **Ubuntu Studio** para audio de baja latencia o **Unity** para una experiencia clásica.
 *   **Software Moderno:** Integración de Flatpak (con búsqueda inteligente), Snap y Extrepo.
 
@@ -63,18 +64,21 @@ sudo ./create_vm.sh --name estudio_creativo --os ubuntu --desktop xfce --flatpak
 11. **VBoxManage Reference:** Control total de VirtualBox desde CLI. [virtualbox.org](https://www.virtualbox.org/manual/ch08.html).
 12. **Proxmox Documentation:** Aprende sobre virtualización de nivel empresarial.
 13. **QEMU/KVM Virtualization:** [Kernel-based Virtual Machine](https://www.linux-kvm.org/).
+14. **SystemRescue:** El kit de supervivencia para técnicos de sistemas. [system-rescue.org](https://www.system-rescue.org/).
 
 ### 🎨 Diseño, Ilustración y Streaming
-14. **Krita Digital Painting:** Manual profesional de ilustración. [krita.org](https://docs.krita.org/).
-15. **Blender 3D:** El estándar de código abierto para 3D y VFX. [blender.org](https://docs.blender.org/).
-16. **OBS Studio Wiki:** Configuración avanzada para streamers en Linux.
-17. **Linux Music Workflow:** Producción de audio y MIDI sin latencia.
+15. **Krita Digital Painting:** Manual profesional de ilustración. [krita.org](https://docs.krita.org/).
+16. **Blender 3D:** El estándar de código abierto para 3D y VFX. [blender.org](https://docs.blender.org/).
+17. **OBS Studio Wiki:** Configuración avanzada para streamers en Linux.
+18. **PipeWire Guide:** Gestión moderna de audio/video. [pipewire.org](https://pipewire.org/).
+19. **Linux Music Workflow:** Producción de audio y MIDI sin latencia.
 
 ### 🐧 Interesados en Linux (Transición desde Windows)
-18. **Linux Journey (Español):** Guía visual para principiantes.
-19. **Ubuntu Community Help:** Soluciones a problemas comunes al migrar.
-20. **AlternativeTo:** Encuentra el equivalente en Linux de tus apps de Windows. [alternativeto.net](https://alternativeto.net/).
-21. **DistroSea:** Prueba Linux en tu navegador antes de instalarlo.
+20. **Linux Journey (Español):** Guía visual para principiantes.
+21. **Ubuntu Community Help:** Soluciones a problemas comunes al migrar.
+22. **AlternativeTo:** Encuentra el equivalente en Linux de tus apps de Windows. [alternativeto.net](https://alternativeto.net/).
+23. **DistroSea:** Prueba Linux en tu navegador antes de instalarlo.
+24. **It's FOSS:** El portal de referencia para noticias y tutoriales de Linux. [itsfoss.com](https://itsfoss.com/).
 
 ---
 *Desarrollado como herramienta de apoyo para la formación profesional en informática y comunicaciones.*

@@ -3,6 +3,12 @@
 Este documento detalla la evolución del script `create_vm.sh` y las tareas realizadas en el proyecto.
 
 ## [1.4.0] - 2026-05-13
+### Añadido
+- **Soporte de Discos con Decimales**: Implementación de una función de normalización que permite establecer tamaños de disco con decimales (ej: `64,50G` o `85.5G`).
+  - **Corrección Automática**: El script ahora detecta comas y las convierte a puntos decimales para asegurar la compatibilidad con `qemu-img`.
+  - **Limpieza de Entrada**: Se eliminan espacios en blanco accidentales y se añade automáticamente la unidad 'G' si el usuario introduce solo un valor numérico (entero o decimal).
+  - **Precisión Técnica**: Mejora la capacidad de ajustar el almacenamiento virtual a requisitos específicos de particionamiento o cuotas.
+
 ### Corregido
 - **Fallo Crítico de GRUB (normal.mod not found)**: Se ha solucionado el error que impedía el arranque en máquinas con entorno gráfico (GNOME). La solución ha consistido en:
   - **Reordenación de Instalación**: El bloque de Kernel y GRUB se ha movido al final del script `setup.sh` para evitar que las instalaciones de escritorios pesados interfieran con la configuración del cargador.

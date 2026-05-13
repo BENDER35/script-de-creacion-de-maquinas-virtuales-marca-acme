@@ -15,7 +15,18 @@ El script `create_vm.sh` ha evolucionado para incluir mecanismos de "autocuraci�
 
 *   **Soporte Creativo Profesional:** Ubuntu Studio se ofrece con un kernel de baja latencia (low-latency), esencial para profesionales del audio y streaming que necesitan respuesta en tiempo real.
 
-## 2. Gestión de Paquetes y Sandboxing
+## 2. Gestión de Almacenamiento y Discos (v1.4.0)
+
+*   **Precisión Decimal:** El script ahora soporta la definición de tamaños de disco con decimales (ej: `64,50G`). Esto es vital para:
+    1.  **Microinformática:** Prácticas de particionamiento exacto donde se requiere un tamaño específico para simular escenarios de cuotas de disco o límites de hardware.
+    2.  **Sistemas Avanzados:** Ajuste fino del almacenamiento en entornos donde el espacio en el host es limitado.
+*   **Normalización Inteligente:** Para mejorar la experiencia de usuario (UX), el script realiza una limpieza de la entrada:
+    *   Convierte comas en puntos (`85,5` -> `85.5`).
+    *   Elimina espacios accidentales.
+    *   Añade la unidad 'G' (Gigabytes) por defecto si se omite.
+    *   Asegura que herramientas como `qemu-img`, `VBoxManage` y `qemu-img convert` reciban un formato estandarizado.
+
+## 3. Gestión de Paquetes y Sandboxing
 
 *   **Flatpak con Búsqueda Inteligente:** El script no solo instala paquetes Flatpak, sino que utiliza `flatpak search` para resolver IDs de aplicaciones. Esto facilita a los artistas encontrar herramientas como `Krita` o `Blender` sin conocer el ID exacto (ej. `org.kde.krita`).
 *   **Aislamiento:** La inclusión de `bubblewrap` asegura que las aplicaciones instaladas vía Flatpak operen en un entorno seguro y aislado del núcleo del sistema.
@@ -58,13 +69,21 @@ El script `create_vm.sh` ha evolucionado para incluir mecanismos de "autocuraci�
 8.  **NIST Cybersecurity Framework:** [Estándares internacionales de seguridad](https://www.nist.gov/cyberframework).
 9.  **TryHackMe - Linux Fundamentals:** [Aprendizaje interactivo](https://tryhackme.com/module/linux-fundamentals).
 
+### Microinformática y Diagnóstico de Sistemas
+10. **Hiren's BootCD PE:** [Aunque es Windows PE, se usa para reparar Linux](https://www.hirensbootcd.org/).
+11. **Ultimate Boot CD:** [Herramientas de diagnóstico de bajo nivel](https://www.ultimatebootcd.com/).
+12. **SystemRescue:** [Sistema de rescate Linux esencial para técnicos](https://www.system-rescue.org/).
+
 ### Creación Digital, Diseño y Streaming
-10. **Ubuntu Studio Manual:** [Configuración para multimedia profesional](https://ubuntustudio.org/tour/).
-11. **Krita Foundation:** [Documentación oficial de ilustración](https://docs.krita.org/).
-12. **Blender Manual:** [Guía completa de 3D y VFX](https://docs.blender.org/).
-13. **OBS Studio Wiki:** [Configuración avanzada de streaming](https://obsproject.com/wiki/).
+13. **Ubuntu Studio Manual:** [Configuración para multimedia profesional](https://ubuntustudio.org/tour/).
+14. **Krita Foundation:** [Documentación oficial de ilustración](https://docs.krita.org/).
+15. **Blender Manual:** [Guía completa de 3D y VFX](https://docs.blender.org/).
+16. **OBS Studio Wiki:** [Configuración avanzada de streaming](https://obsproject.com/wiki/).
+17. **PipeWire Guide:** [El nuevo estándar de audio y video en Linux](https://pipewire.org/).
+18. **EposVox (Streaming on Linux):** [Recurso educativo para streaming profesional](https://www.youtube.com/user/EposVox).
 
 ### Transición Windows -> Linux (Migración)
-14. **Linux Journey:** [Curso visual para principiantes](https://linuxjourney.com/).
-15. **AlternativeTo:** [Buscador de software libre equivalente](https://alternativeto.net/).
-16. **DistroSea:** [Pruebas de sistemas en la nube](https://distrosea.com/).
+19. **Linux Journey:** [Curso visual para principiantes](https://linuxjourney.com/).
+20. **AlternativeTo:** [Buscador de software libre equivalente](https://alternativeto.net/).
+21. **DistroSea:** [Pruebas de sistemas en la nube](https://distrosea.com/).
+22. **It's FOSS:** [Noticias y tutoriales para usuarios de escritorio](https://itsfoss.com/).

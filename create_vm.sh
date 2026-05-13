@@ -305,8 +305,11 @@ fi
 
 read -p "RAM (MB) [$VM_RAM]: " input_ram; [[ -n "$input_ram" ]] && VM_RAM="$input_ram"
 read -p "Disco (ej: 50G) [$VM_DISK_SIZE]: " input_disk; [[ -n "$input_disk" ]] && VM_DISK_SIZE="$input_disk"
-# Validación de tamaño de disco: si es solo numérico, añadir 'G' por defecto
-if [[ "$VM_DISK_SIZE" =~ ^[0-9]+$ ]]; then
+# Normalizar: quitar espacios y cambiar coma por punto decimal para herramientas (qemu-img, etc)
+VM_DISK_SIZE=${VM_DISK_SIZE// /}
+VM_DISK_SIZE=${VM_DISK_SIZE//,/.}
+# Validación de tamaño de disco: si es numérico (entero o decimal), añadir 'G' por defecto
+if [[ "$VM_DISK_SIZE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
     log "No se detectó unidad en el tamaño del disco, asumiendo Gigabytes (G)." "WARNING"
     VM_DISK_SIZE="${VM_DISK_SIZE}G"
 fi
