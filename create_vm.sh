@@ -599,23 +599,6 @@ fi
 echo "$VM_USER:$VM_PASS" | chpasswd
 [[ "$VM_USER" != "root" ]] && echo "$VM_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$VM_USER
 
-echo "Instalando kernel y grub..."
-# Pre-configurar grub-pc
-echo "grub-pc grub-pc/install_devices multiselect \$1" | debconf-set-selections
-echo "grub-pc grub-pc/install_devices_empty boolean false" | debconf-set-selections
-apt-get install -y $KERNEL_PKGS
-
-echo "Configurando GRUB..."
-apt-get purge -y os-prober
-if grep -q "GRUB_DISABLE_OS_PROBER" /etc/default/grub; then
-    sed -i 's/^#*GRUB_DISABLE_OS_PROBER=.*/GRUB_DISABLE_OS_PROBER=true/' /etc/default/grub
-else
-    echo "GRUB_DISABLE_OS_PROBER=true" >> /etc/default/grub
-fi
-
-grub-install --target=i386-pc --force --modules=part_msdos "\$1"
-update-grub
-
 echo "Instalando herramientas básicas..."
 apt-get install -y openssh-server curl git wget
 
@@ -709,6 +692,24 @@ fi
 echo "Instalando wallpapers..."
 mkdir -p /usr/share/backgrounds/acme
 cp /tmp/wallpapers/* /usr/share/backgrounds/acme/ 2>/dev/null || true
+
+echo "Instalando kernel y grub..."
+# Pre-configurar grub-pc
+echo "grub-pc grub-pc/install_devices multiselect \$1" | debconf-set-selections
+echo "grub-pc grub-pc/install_devices_empty boolean false" | debconf-set-selections
+apt-get install -y $KERNEL_PKGS
+
+echo "Configurando GRUB..."
+apt-get purge -y os-prober
+if grep -q "GRUB_DISABLE_OS_PROBER" /etc/default/grub; then
+    sed -i 's/^#*GRUB_DISABLE_OS_PROBER=.*/GRUB_DISABLE_OS_PROBER=true/' /etc/default/grub
+else
+    echo "GRUB_DISABLE_OS_PROBER=true" >> /etc/default/grub
+fi
+
+# Opción 1: Añadir módulos críticos y recheck para evitar errores de carga
+grub-install --target=i386-pc --force --recheck --modules="part_msdos ext2 biosdisk" "\$1"
+update-grub
 CHROOT_SCRIPT
 
 UUID=$(sudo blkid -s UUID -o value "$PART_DEV")

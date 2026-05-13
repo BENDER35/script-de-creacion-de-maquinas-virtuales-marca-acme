@@ -2,6 +2,19 @@
 
 Este documento detalla la evolución del script `create_vm.sh` y las tareas realizadas en el proyecto.
 
+## [1.4.0] - 2026-05-13
+### Corregido
+- **Fallo Crítico de GRUB (normal.mod not found)**: Se ha solucionado el error que impedía el arranque en máquinas con entorno gráfico (GNOME). La solución ha consistido en:
+  - **Reordenación de Instalación**: El bloque de Kernel y GRUB se ha movido al final del script `setup.sh` para evitar que las instalaciones de escritorios pesados interfieran con la configuración del cargador.
+  - **Robustez en grub-install**: Se han añadido los módulos `ext2` y `biosdisk` junto con el parámetro `--recheck` para asegurar que GRUB pueda leer la partición de sistema en el primer arranque.
+
+### Modificado
+- **Documentación de Impacto Social y Educativo**: Actualización masiva de README y Documentación Técnica enfocada en:
+  - **Iniciación Profesional**: Secciones específicas para alumnos de Sistemas, Programación, Ciberseguridad y Microinformática.
+  - **Transición por Necesidad Económica**: Guía para profesionales creativos (Diseño, Ilustración, Vídeo, Streaming) que migran a Linux por limitaciones de hardware o presupuesto.
+  - **Manual de Supervivencia Windows**: Refuerzo de los conceptos básicos para usuarios que abandonan ecosistemas propietarios.
+- **Bibliografía Multidisciplinar**: Expansión total de las fuentes de aprendizaje y consulta técnica.
+
 ## [1.3.2] - 2026-05-12
 ### Corregido
 - **Gestión de Red en Entorno Gráfico**: Se ha corregido el problema de invisibilidad del gestor de redes en el escritorio de Ubuntu. El script ahora conmuta dinámicamente el renderizador de Netplan a `NetworkManager` cuando se instala un entorno gráfico, asegurando la integración con la UI.
