@@ -2,6 +2,17 @@
 
 Este documento detalla la evolución del script `create_vm.sh` y las tareas realizadas en el proyecto.
 
+## [1.5.0] - 2026-05-14
+### Añadido
+- **Sistema Smart Snap (Detección de Confinamiento y Canales)**: Implementación de una solución híbrida para la instalación de Snaps.
+  - **Función analyze_snaps**: El script ahora analiza en el host si los paquetes solicitados (ej: `shotcut`) requieren `--classic`.
+  - **Servicio de Primer Arranque**: Se ha integrado un servicio de systemd (`acme-first-boot.service`) que se encarga de realizar la instalación real de los snaps cuando la VM arranca por primera vez.
+  - **Lógica de Autodetección**: El script de primer arranque captura errores y reintenta automáticamente con el flag `--classic` o buscando en canales `--edge`, `--beta` y `--candidate` si el paquete no está en el canal estable.
+- **Mejora en Documentación y Bibliografía**: Actualización masiva de README y Documentación Técnica con recursos específicos para:
+  - Estudiantes de Sistemas, Programación y Ciberseguridad.
+  - Profesionales Creativos (Vídeo, Ilustración, Streaming) con limitaciones de presupuesto.
+  - Guías de transición para usuarios que vienen de Windows.
+
 ## [1.4.0] - 2026-05-13
 ### Añadido
 - **Soporte de Discos con Decimales**: Implementación de una función de normalización que permite establecer tamaños de disco con decimales (ej: `64,50G` o `85.5G`).

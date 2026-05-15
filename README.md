@@ -1,6 +1,6 @@
 # VM-Acme: Generador de Laboratorios Virtuales para FP y Universidad
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)
 ![Field](https://img.shields.io/badge/fines-Educativos/Sistemas/Creativos-green.svg)
 
 Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) personalizadas de forma totalmente automatizada. Es un recurso pedagógico y profesional diseñado para:
@@ -13,6 +13,7 @@ Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) 
     *   **Estándar de la Industria:** Linux es el motor de los grandes estudios de efectos visuales (VFX) y animación.
 
 ## 🚀 Características Principales
+*   **Instalación Inteligente de Snaps (v1.5.0):** ¡Dile adiós a los errores de instalación! El script ahora detecta automáticamente si un programa (como **Shotcut**) necesita permisos especiales (`--classic`) o si solo está disponible en canales de desarrollo (`--edge`, `--beta`). Todo se configura solo en el primer arranque de la VM.
 *   **Arranque Robusto (v1.4.0):** Corrección del error `normal.mod not found` mediante la reordenación de la instalación de GRUB y la inclusión de módulos críticos (`ext2`, `biosdisk`). ¡Sistemas gráficos que arrancan siempre a la primera!
 *   **Gestión Dinámica de Red:** Detección automática de entorno gráfico para habilitar `NetworkManager`.
 *   **Automatización Total:** De la descarga (vía mirror inteligente) al disco virtual listo para arrancar.
@@ -46,7 +47,8 @@ sudo ./create_vm.sh --name estudio_creativo --os ubuntu --desktop xfce --flatpak
 
 ### 🛠️ Sistemas y Administración (SMR/ASIR)
 1.  **Debian Handbook:** La guía definitiva del administrador Linux. [Acceso gratuito](https://www.debian.org/doc/manuals/debian-handbook/index.es.html).
-2.  **Arch Wiki:** El mejor recurso sobre conceptos generales de Linux. [wiki.archlinux.org](https://wiki.archlinux.org/).
+2.  **Snapcraft Documentation:** Aprende sobre el sistema de paquetes universales y confinamiento. [snapcraft.io/docs](https://snapcraft.io/docs).
+3.  **Arch Wiki:** El mejor recurso sobre conceptos generales de Linux. [wiki.archlinux.org](https://wiki.archlinux.org/).
 3.  **Linux Journey:** Aprende Linux paso a paso de forma interactiva. [linuxjourney.com](https://linuxjourney.com/).
 4.  **FHS Standard:** Entendiendo la jerarquía del sistema de archivos.
 

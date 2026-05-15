@@ -2,11 +2,18 @@
 
 Esta documentación está diseñada para estudiantes de **Sistemas**, **Ciberseguridad**, **Programación** y **Microinformática**, así como para **migrantes de Windows** y **profesionales creativos** que buscan una alternativa potente y económica.
 
-## 1. Arquitectura y Robustez (v1.4.0)
+## 1. Arquitectura y Robustez (v1.5.0)
 
 El script `create_vm.sh` ha evolucionado para incluir mecanismos de "autocuración" y preparación de entornos avanzados:
 
-*   **Arranque Garantizado (GRUB):** Se ha resuelto el error crítico `normal.mod not found` que afectaba a las instalaciones con entorno gráfico. La solución técnica implementada incluye:
+*   **Sistema de Instalación Inteligente de Snaps (Smart Snap):** 
+    Se ha resuelto el problema de la instalación de software complejo (ej. editores de vídeo como **Shotcut**) que requieren confinamiento `--classic` o canales específicos.
+    1.  **Fase Host (Detección Proactiva):** La función `analyze_snaps` consulta la Snap Store antes de la construcción para pre-detectar flags necesarios.
+    2.  **Fase Guest (Servicio de Primer Arranque):** Se crea un servicio de systemd (`acme-first-boot.service`) que se ejecuta una sola vez al arrancar la VM por primera vez. Este servicio utiliza una lógica de reintentos que prueba automáticamente el flag `--classic` y los canales `--edge`, `--beta` y `--candidate` si la instalación estándar falla.
+    3.  **Transparencia:** Para el usuario, el software "simplemente aparece" instalado y configurado correctamente.
+
+*   **Arranque Garantizado (GRUB):**
+ Se ha resuelto el error crítico `normal.mod not found` que afectaba a las instalaciones con entorno gráfico. La solución técnica implementada incluye:
     1.  **Reordenación de la fase Chroot:** La instalación del kernel y GRUB ahora ocurre *después* de la instalación de todos los paquetes de escritorio y software opcional. Esto evita que los triggers de `apt` (como los de Plymouth o los drivers de video) invaliden la configuración del cargador de arranque.
     2.  **Módulos Estáticos:** El comando `grub-install` ahora incluye explícitamente los módulos `ext2`, `part_msdos` y `biosdisk`, asegurando que el cargador pueda leer la partición de sistema independientemente de la detección automática del host.
     3.  **Saneamiento con --recheck:** Se utiliza el parámetro `--recheck` para regenerar el mapa de dispositivos, eliminando inconsistencias entre el dispositivo `loop` del host y el disco virtual.

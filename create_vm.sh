@@ -239,6 +239,29 @@ fetch_latest_versions() {
     log "Objetivo detectado: $OS ($OS_CODENAME)" "INFO"
 }
 
+analyze_snaps() {
+    local snaps=$1
+    [[ -z "$snaps" ]] && return
+    if ! command -v snap &> /dev/null; then
+        log "Comando 'snap' no encontrado en el host. Se delegará toda la detección a la VM." "WARNING"
+        SNAP_DATA_HOST=""
+        return
+    fi
+    log "Analizando snaps seleccionados en el host ($snaps)..." "INFO"
+    SNAP_DATA_HOST=""
+    for s in ${snaps//,/ }; do
+        log "Consultando info de: $s..." "DEBUG"
+        local info=$(snap info "$s" 2>/dev/null || echo "")
+        local flags=""
+        if echo "$info" | grep -q "classic"; then
+            flags="--classic"
+        fi
+        # Si no hay versión estable pero sí otras, marcamos para que la VM pruebe canales
+        SNAP_DATA_HOST+="${s}:${flags} "
+    done
+    SNAP_DATA_HOST=$(echo "$SNAP_DATA_HOST" | xargs)
+}
+
 check_dependencies() {
     log "Verificando dependencias en el host para $HYPERVISOR..." "INFO"
     local deps=("curl" "qemu-img" "zip" "7z" "rar" "openssl" "bc" "jq" "debootstrap" "parted" "kpartx" "binfmt-support" "qemu-user-static")
@@ -417,6 +440,7 @@ log "Configuración finalizada. Iniciando construcción..."
 # --- CORE ---
 mkdir -p "$VM_DIR" "$CONFIG_DIR/$NAME"
 fetch_latest_versions
+analyze_snaps "$OPT_SNAP"
 
 if [[ -n "$WALLHAVEN_QUERY" ]]; then
     log "Descargando fondos de Wallhaven para las búsquedas: $WALLHAVEN_QUERY"
@@ -649,14 +673,95 @@ if [[ -n "$OPT_FLATPAK" ]]; then
 fi
 
 if [[ -n "$OPT_SNAP" ]]; then
-    echo "Configurando Snap..."
-    # Snap requiere dbus y squashfs-tools. En chroot el daemon no corre, pero instalamos los paquetes.
+    echo "Preparando instalación inteligente de Snaps para el primer arranque..."
     apt-get install -y snapd dbus-user-session squashfs-tools
-    for s in ${OPT_SNAP//,/ }; do 
-        echo "Instalando snap: \$s"
-        # Intentar instalar, pero ignorar fallos de comunicación con el daemon (común en chroot)
-        snap install "\$s" || echo "Aviso: Snap \$s no se instaló (el daemon snapd no suele estar activo en chroot). Se intentará en el primer arranque."
+    
+    # 1. Escribimos la cabecera y la lista de snaps detectada (expandida por el host)
+    cat <<EOF_FB_HEAD > /usr/local/bin/acme-first-boot.sh
+#!/bin/bash
+# Lista de snaps procesada por el host
+SNAP_LIST="$SNAP_DATA_HOST"
+# Si por alguna razón el host no pudo analizar, usamos la lista original
+[[ -z "\$SNAP_LIST" ]] && SNAP_LIST="${OPT_SNAP//,/ }"
+EOF_FB_HEAD
+
+    # 2. Adjuntamos el resto de la lógica (literal, sin expansión hasta que se ejecute en la VM)
+    cat <<'EOF_FB_BODY' >> /usr/local/bin/acme-first-boot.sh
+log_fb() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] [SNAP-INSTALL] $1"; }
+
+log_fb "Esperando a que snapd esté listo..."
+for i in {1..30}; do
+    snap wait system seed.loaded 2>/dev/null && break
+    sleep 2
+done
+
+smart_snap_install() {
+    local name=$1
+    local initial_flags=$2
+    log_fb "Procesando snap: $name..."
+    
+    # 1. Intento inicial
+    if snap install "$name" $initial_flags 2>/dev/null; then
+        log_fb "Instalado con éxito: $name ($initial_flags)"
+        return 0
+    fi
+    
+    # 2. Detección de --classic
+    local error_msg
+    error_msg=$(snap install "$name" 2>&1)
+    if echo "$error_msg" | grep -q "classic"; then
+        log_fb "Detectado requerimiento de --classic para $name. Reintentando..."
+        snap install "$name" --classic && return 0
+    fi
+
+    # 3. Canales alternativos
+    for channel in edge beta candidate; do
+        log_fb "Probando canal --$channel para $name..."
+        if snap install "$name" --channel=$channel 2>/dev/null; then
+            log_fb "Instalado desde canal $channel: $name"
+            return 0
+        fi
+        if snap install "$name" --channel=$channel --classic 2>/dev/null; then
+            log_fb "Instalado desde canal $channel con --classic: $name"
+            return 0
+        fi
     done
+    return 1
+}
+
+for item in $SNAP_LIST; do
+    if [[ "$item" == *:* ]]; then
+        s_name=${item%%:*}
+        s_flags=${item#*:}
+    else
+        s_name=$item
+        s_flags=""
+    fi
+    smart_snap_install "$s_name" "$s_flags"
+done
+
+log_fb "Proceso completado. Deshabilitando servicio."
+systemctl disable acme-first-boot.service
+EOF_FB_BODY
+
+    chmod +x /usr/local/bin/acme-first-boot.sh
+
+    cat <<EOF_SVC > /etc/systemd/system/acme-first-boot.service
+[Unit]
+Description=Configuración inicial de Snaps Acme
+After=network-online.target snapd.service
+Wants=network-online.target snapd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/acme-first-boot.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF_SVC
+
+    systemctl enable acme-first-boot.service
 fi
 
 if [[ "$DESKTOP" != "none" ]]; then
