@@ -1,96 +1,55 @@
 # Documentación Técnica: Automatización de Infraestructura (Marca Acme)
 
-Esta documentación está diseñada para estudiantes de **Sistemas**, **Ciberseguridad**, **Programación** y **Microinformática**, así como para **migrantes de Windows** y **profesionales creativos** que buscan una alternativa potente y económica.
+Esta documentación está diseñada para servir como guía avanzada para estudiantes de **IT**, **migrantes de Windows** y **profesionales creativos** que buscan optimizar su flujo de trabajo en Linux.
 
-## 1. Arquitectura y Robustez (v1.5.0)
+## 1. Arquitectura y Robustez (v1.7.0)
 
-El script `create_vm.sh` ha evolucionado para incluir mecanismos de "autocuración" y preparación de entornos avanzados:
+El script `create_vm.sh` implementa una lógica de construcción por capas, diseñada para ser resiliente a los cambios en las distribuciones host y guest.
 
-*   **Sistema de Instalación Inteligente de Snaps (Smart Snap):** 
-    Se ha resuelto el problema de la instalación de software complejo (ej. editores de vídeo como **Shotcut**) que requieren confinamiento `--classic` o canales específicos.
-    1.  **Fase Host (Detección Proactiva):** La función `analyze_snaps` consulta la Snap Store antes de la construcción para pre-detectar flags necesarios.
-    2.  **Fase Guest (Servicio de Primer Arranque):** Se crea un servicio de systemd (`acme-first-boot.service`) que se ejecuta una sola vez al arrancar la VM por primera vez. Este servicio utiliza una lógica de reintentos que prueba automáticamente el flag `--classic` y los canales `--edge`, `--beta` y `--candidate` si la instalación estándar falla.
-    3.  **Transparencia:** Para el usuario, el software "simplemente aparece" instalado y configurado correctamente.
+*   **Sistema Anti-Bloqueo de Servicios (`policy-rc.d`):**
+    1.  **El Problema:** Al instalar paquetes como `ModemManager` o servidores de bases de datos dentro de un entorno `chroot`, el sistema intenta arrancar servicios a través de `systemd` o `dbus`. Dado que el entorno `chroot` no tiene un sistema de init activo, el proceso de instalación se bloquea indefinidamente esperando una señal de éxito que nunca llega.
+    2.  **La Solución:** Se ha implementado un mecanismo de control de políticas (`/usr/sbin/policy-rc.d`). 
+        -   Al inicio del chroot, se crea este script devolviendo el código `101`.
+        -   Este código indica a los scripts de post-instalación de Debian/Ubuntu que **no deben intentar arrancar el servicio**.
+        -   Al finalizar la construcción, el archivo se elimina para permitir el funcionamiento normal del sistema una vez arrancada la VM.
 
-*   **Arranque Garantizado (GRUB):**
- Se ha resuelto el error crítico `normal.mod not found` que afectaba a las instalaciones con entorno gráfico. La solución técnica implementada incluye:
-    1.  **Reordenación de la fase Chroot:** La instalación del kernel y GRUB ahora ocurre *después* de la instalación de todos los paquetes de escritorio y software opcional. Esto evita que los triggers de `apt` (como los de Plymouth o los drivers de video) invaliden la configuración del cargador de arranque.
-    2.  **Módulos Estáticos:** El comando `grub-install` ahora incluye explícitamente los módulos `ext2`, `part_msdos` y `biosdisk`, asegurando que el cargador pueda leer la partición de sistema independientemente de la detección automática del host.
-    3.  **Saneamiento con --recheck:** Se utiliza el parámetro `--recheck` para regenerar el mapa de dispositivos, eliminando inconsistencias entre el dispositivo `loop` del host y el disco virtual.
+*   **Gestión de Dependencias en el Host:** 
+    Se utiliza una lógica de triple verificación para asegurar que herramientas críticas como `qemu-img` o `debootstrap` estén presentes, incluyendo sistemas de fallback para paquetes virtuales en versiones modernas de Ubuntu.
 
-*   **Gestión Dinámica de Red (NetworkManager):** El script detecta si se ha seleccionado un escritorio gráfico. De ser así, configura Netplan para usar `NetworkManager` como renderizador, asegurando que el icono de red y la gestión desde la UI funcionen correctamente. En modo servidor, mantiene `networkd` para mayor ligereza.
+*   **Sistema Smart Snap:** 
+    Implementa un servicio de "post-instalación diferida" (`acme-first-boot.service`) que soluciona la imposibilidad de instalar Snaps dentro de un `chroot` sin los sistemas de archivos `squashfs` montados.
 
-*   **Soporte Creativo Profesional:** Ubuntu Studio se ofrece con un kernel de baja latencia (low-latency), esencial para profesionales del audio y streaming que necesitan respuesta en tiempo real.
+## 2. Guía de Orientación por Perfiles
 
-## 2. Gestión de Almacenamiento y Discos (v1.4.0)
+### A. Estudiantes de IT (SMR, ASIR, DAW/DAM, Ciberseguridad)
+*   **Microinformática:** El script es un laboratorio viviente sobre la jerarquía de directorios Linux (FHS) y la gestión de dispositivos loop.
+*   **Sistemas:** El bloque de red demuestra el uso de `Netplan` y la transición desde configuraciones heredadas de `/etc/network/interfaces`.
+*   **Ciberseguridad:** Permite generar entornos de "Infraestructura como Código" (IaC) para laboratorios de Red Team / Blue Team.
 
-*   **Precisión Decimal:** El script ahora soporta la definición de tamaños de disco con decimales (ej: `64,50G`). Esto es vital para:
-    1.  **Microinformática:** Prácticas de particionamiento exacto donde se requiere un tamaño específico para simular escenarios de cuotas de disco o límites de hardware.
-    2.  **Sistemas Avanzados:** Ajuste fino del almacenamiento en entornos donde el espacio en el host es limitado.
-*   **Normalización Inteligente:** Para mejorar la experiencia de usuario (UX), el script realiza una limpieza de la entrada:
-    *   Convierte comas en puntos (`85,5` -> `85.5`).
-    *   Elimina espacios accidentales.
-    *   Añade la unidad 'G' (Gigabytes) por defecto si se omite.
-    *   Asegura que herramientas como `qemu-img`, `VBoxManage` y `qemu-img convert` reciban un formato estandarizado.
+### B. Migrantes desde Windows (Supervivencia y Eficiencia)
+*   **Hardware Sostenible:** Linux permite que ordenadores con procesadores antiguos o sin chips TPM funcionen de forma fluida, algo que Windows 11 prohíbe.
+*   **Equivalencias de Software:** Se recomienda el uso de **Flatpak** para obtener versiones siempre actualizadas de navegadores y herramientas de oficina sin depender del sistema base.
 
-## 3. Gestión de Paquetes y Sandboxing
+### C. Creativos: Diseño, Vídeo y Streaming (Economía de Recursos)
+*   **Kernel de Baja Latencia:** El script facilita la instalación del sabor **Ubuntu Studio**, optimizando el kernel para evitar el "jitter" o latencia en grabaciones de audio y streamings en vivo.
+*   **Rendimiento en Vídeo:** Al no tener procesos de telemetría o antivirus pesados, Linux dedica más ciclos de CPU al renderizado en aplicaciones como **Blender** o **Kdenlive**.
 
-*   **Flatpak con Búsqueda Inteligente:** El script no solo instala paquetes Flatpak, sino que utiliza `flatpak search` para resolver IDs de aplicaciones. Esto facilita a los artistas encontrar herramientas como `Krita` o `Blender` sin conocer el ID exacto (ej. `org.kde.krita`).
-*   **Aislamiento:** La inclusión de `bubblewrap` asegura que las aplicaciones instaladas vía Flatpak operen en un entorno seguro y aislado del núcleo del sistema.
+## 3. Bibliografía y Recursos Educativos
 
-## 3. Guía de Orientación por Perfiles
+### Sistemas y Automatización
+1.  **The Debian Administrator's Handbook:** [Guía oficial de administración](https://debian-handbook.info/browse/stable/).
+2.  **Vagrant Internals:** [Documentación de arquitectura de boxes](https://www.vagrantup.com/docs/providers).
+3.  **Netplan Reference:** [Configuración de red moderna en Ubuntu](https://netplan.io/reference/).
+4.  **Filesystem Hierarchy Standard:** [FHS 3.0 Specification](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html).
 
-### A. Estudiantes de IT (Sistemas, Redes, Ciberseguridad)
-*   **Microinformática:** El script automatiza la creación de discos `.vdi` y `.vmdk`. La inclusión de una unidad óptica vacía permite practicar el arranque desde ISOs externas para mantenimiento de sistemas.
-*   **Ciberseguridad:** Crear máquinas "limpias" mediante `debootstrap` minimiza la superficie de ataque. Es la base para construir "honeypots" o entornos de análisis forense.
-*   **Programación:** El script es un ejemplo avanzado de automatización. El uso de `Heredocs` para generar el script `setup.sh` dinámicamente es una técnica fundamental en DevOps y despliegue de infraestructura.
+### Multimedia y Producción
+5.  **Ubuntu Studio Audio Guide:** [Wiki técnica sobre audio en Linux](https://ubuntustudio.org/manual/audio/).
+6.  **Krita Documentation:** [Manual para artistas digitales](https://docs.krita.org/es/).
+7.  **PipeWire Project:** [El futuro del audio y vídeo en Linux](https://pipewire.org/).
+8.  **OBS Studio Studio Mode:** [Documentación para streamers](https://obsproject.com/wiki/OBS-Studio-Overview).
 
-### B. Migrantes desde Windows (Guía de Supervivencia)
-*   **Jerarquía de Archivos:** Olvida el concepto de letras de unidad (`C:`, `D:`). En Linux, todo es un archivo que cuelga de la raíz `/`.
-*   **Seguridad Activa:** La arquitectura de permisos de Linux impide que un virus afecte al sistema completo sin intervención del administrador (`sudo`).
-*   **Equivalencias de Software:**
-    *   **Office -> LibreOffice:** Compatibilidad total con formatos `.docx` y `.xlsx`.
-    *   **Explorer -> Nautilus/Thunar:** Administradores de archivos potentes y personalizables.
-
-### C. Creativos: Diseño, Vídeo y Streaming (Economía y Rendimiento)
-*   **Rendimiento en Hardware Modesto:** Linux utiliza menos RAM y ciclos de CPU para el sistema base, dejando más recursos libres para el renderizado de vídeo o la pintura digital.
-*   **Herramientas de Nivel Profesional:**
-    *   **Krita:** Supera a Photoshop en herramientas específicas para ilustración y animación 2D.
-    *   **DaVinci Resolve:** El mismo software usado en Hollywood para corrección de color está disponible de forma nativa en Linux.
-    *   **OBS Studio:** Al correr sobre un sistema más ligero, permite tasas de bits (bitrate) más estables para streamers.
-
-## 4. Bibliografía y Recursos Educativos
-
-### Sistemas Operativos y Despliegue (SMR/ASIR)
-1.  **The Debian Administrator's Handbook:** [La biblia sobre gestión de sistemas Debian](https://debian-handbook.info/).
-2.  **Debian Wiki - debootstrap:** [Manual de construcción de sistemas base](https://wiki.debian.org/Debootstrap).
-3.  **Linux Filesystem Hierarchy Standard (FHS):** [Referencia oficial de directorios](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html).
-
-### Automatización y Programación
-4.  **Google Shell Style Guide:** [Estándares de la industria para scripts en Bash](https://google.github.io/styleguide/shellguide.html).
-5.  **Bash Pitfalls:** [Guía para evitar errores comunes en scripting](https://mywiki.wooledge.org/BashPitfalls).
-6.  **Full Stack Open - Docker/Linux:** [Despliegue moderno](https://fullstackopen.com/es/).
-
-### Ciberseguridad y Aislamiento
-7.  **Flatpak Documentation:** [Seguridad y sandboxing](https://docs.flatpak.org/).
-8.  **NIST Cybersecurity Framework:** [Estándares internacionales de seguridad](https://www.nist.gov/cyberframework).
-9.  **TryHackMe - Linux Fundamentals:** [Aprendizaje interactivo](https://tryhackme.com/module/linux-fundamentals).
-
-### Microinformática y Diagnóstico de Sistemas
-10. **Hiren's BootCD PE:** [Aunque es Windows PE, se usa para reparar Linux](https://www.hirensbootcd.org/).
-11. **Ultimate Boot CD:** [Herramientas de diagnóstico de bajo nivel](https://www.ultimatebootcd.com/).
-12. **SystemRescue:** [Sistema de rescate Linux esencial para técnicos](https://www.system-rescue.org/).
-
-### Creación Digital, Diseño y Streaming
-13. **Ubuntu Studio Manual:** [Configuración para multimedia profesional](https://ubuntustudio.org/tour/).
-14. **Krita Foundation:** [Documentación oficial de ilustración](https://docs.krita.org/).
-15. **Blender Manual:** [Guía completa de 3D y VFX](https://docs.blender.org/).
-16. **OBS Studio Wiki:** [Configuración avanzada de streaming](https://obsproject.com/wiki/).
-17. **PipeWire Guide:** [El nuevo estándar de audio y video en Linux](https://pipewire.org/).
-18. **EposVox (Streaming on Linux):** [Recurso educativo para streaming profesional](https://www.youtube.com/user/EposVox).
-
-### Transición Windows -> Linux (Migración)
-19. **Linux Journey:** [Curso visual para principiantes](https://linuxjourney.com/).
-20. **AlternativeTo:** [Buscador de software libre equivalente](https://alternativeto.net/).
-21. **DistroSea:** [Pruebas de sistemas en la nube](https://distrosea.com/).
-22. **It's FOSS:** [Noticias y tutoriales para usuarios de escritorio](https://itsfoss.com/).
+### Iniciación y Transición
+9.  **Linux Journey:** [Tutorial interactivo completo](https://linuxjourney.com/).
+10. **AlternativeTo Linux:** [Buscador de equivalencias de programas](https://alternativeto.net/platform/linux/).
+11. **DistroWatch:** [Base de datos de distribuciones Linux](https://distrowatch.com/).
+12. **Arch Wiki:** Referencia técnica universal (incluso para usuarios de Debian/Ubuntu). [wiki.archlinux.org](https://wiki.archlinux.org/).

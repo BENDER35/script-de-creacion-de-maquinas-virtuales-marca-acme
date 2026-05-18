@@ -1,86 +1,73 @@
 # VM-Acme: Generador de Laboratorios Virtuales para FP y Universidad
 
-![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.7.0-blue.svg)
 ![Field](https://img.shields.io/badge/fines-Educativos/Sistemas/Creativos-green.svg)
 
-Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) personalizadas de forma totalmente automatizada. Es un recurso pedagógico y profesional diseñado para:
+Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) personalizadas de forma totalmente automatizada. Es un recurso pedagógico y profesional diseñado para democratizar el acceso a la tecnología, ideal para quienes buscan una alternativa potente y gratuita a los sistemas propietarios.
 
-*   **Sistemas, Ciberseguridad y Microinformática:** Aprende la arquitectura de Linux desde sus cimientos (`debootstrap`). Genera laboratorios aislados y seguros para prácticas de redes o forense.
-*   **Programación y DevOps:** Automatiza entornos de desarrollo reproducibles. El script es un caso de estudio real de scripting avanzado en Bash y despliegue automatizado.
-*   **Migrantes de Windows (Hogar y Oficina):** Experimenta con Linux de forma segura. Descubre una estructura jerárquica lógica y un sistema libre de virus y telemetría intrusiva.
-*   **Creativos (Diseño, Edición, Ilustración, Streaming):** 
-    *   **Salvavidas Económico:** Si tu equipo no soporta Windows 11 o las últimas versiones de Adobe, Linux (vía Ubuntu Studio) te ofrece un rendimiento profesional en hardware "antiguo".
-    *   **Estándar de la Industria:** Linux es el motor de los grandes estudios de efectos visuales (VFX) y animación.
+## 🎯 Perfiles de Usuario
 
-## 🚀 Características Principales
-*   **Instalación Inteligente de Snaps (v1.5.0):** ¡Dile adiós a los errores de instalación! El script ahora detecta automáticamente si un programa (como **Shotcut**) necesita permisos especiales (`--classic`) o si solo está disponible en canales de desarrollo (`--edge`, `--beta`). Todo se configura solo en el primer arranque de la VM.
-*   **Arranque Robusto (v1.4.0):** Corrección del error `normal.mod not found` mediante la reordenación de la instalación de GRUB y la inclusión de módulos críticos (`ext2`, `biosdisk`). ¡Sistemas gráficos que arrancan siempre a la primera!
-*   **Gestión Dinámica de Red:** Detección automática de entorno gráfico para habilitar `NetworkManager`.
-*   **Automatización Total:** De la descarga (vía mirror inteligente) al disco virtual listo para arrancar.
-*   **Gestión de Discos con Precisión (v1.4.0):** Soporte para tamaños decimales (ej: `64,5G`). El script normaliza automáticamente comas y espacios, facilitando la vida a usuarios que vienen de entornos locales donde la coma es el separador estándar.
-*   **Soporte Multimedia Avanzado:** Despliega **Ubuntu Studio** para audio de baja latencia o **Unity** para una experiencia clásica.
-*   **Software Moderno:** Integración de Flatpak (con búsqueda inteligente), Snap y Extrepo.
+*   **Estudiantes de Sistemas, Programación, Ciberseguridad y Microinformática:** 
+    *   **Iniciación (SMR/ASIR):** Aprende cómo se construye un sistema operativo desde sus cimientos. El script es una lección abierta sobre particionado, montajes y gestión de paquetes.
+    *   **Laboratorios de Redes:** Genera infraestructuras completas en segundos para practicar routing, firewalling o pentesting.
+    *   **Automatización (DAW/DAM):** Estudia el código fuente para dominar Bash y la infraestructura como código (IaC).
+*   **Migrantes de Windows (Hogar y Oficina):** 
+    *   **Transición Segura:** No rompas tu ordenador principal. Crea máquinas virtuales para aprender Linux, su terminal y su filosofía de libertad sin riesgos.
+    *   **Privacidad Total:** Olvídate del rastreo de datos y las actualizaciones forzosas que ralentizan tu trabajo.
+*   **Creativos (Diseño, Ilustración, Vídeo y Streaming):** 
+    *   **Alternativa Económica:** Si no puedes permitirte las suscripciones mensuales de Adobe o tu hardware no soporta Windows 11, Linux es tu salvación.
+    *   **Hardware Antiguo:** Dale una segunda vida a ese equipo que Windows considera "obsoleto". Linux vuela donde otros sistemas se arrastran.
+    *   **Software Profesional:** Usa **Krita** para ilustración, **Blender** para 3D, **Kdenlive** para edición de vídeo y **OBS Studio** para tus directos.
 
-## 🪟 Guía de Supervivencia para Usuarios de Windows
-Si vienes de Windows por necesidad o curiosidad, aquí tienes tus puntos de orientación:
-1.  **Tu casa es `/home/usuario`:** Olvida el `C:`. Tus archivos están en tu carpeta personal dentro de `/home`.
-2.  **El Centro de Software es tu "Tienda":** No busques instaladores por internet. Todo el software profesional (Krita, OBS, Blender, Kdenlive) está a un clic en los repositorios oficiales.
-3.  **Rendimiento Real:** Donde Windows se "atasca" con actualizaciones pesadas, Linux vuela. Es ideal para dar una segunda vida a portátiles de hace 5-8 años.
-4.  **Libertad y Privacidad:** Tú tienes el control total del sistema. Sin actualizaciones forzadas ni publicidad en el menú de inicio.
+## 🚀 Características Principales (v1.7.0)
+*   **Sistema Anti-Bloqueo `policy-rc.d`:** Garantiza que la instalación nunca se detenga por servicios rebeldes (como `ModemManager`). Estabilidad absoluta en Hyper-V y entornos virtualizados.
+*   **Gestión Inteligente de Dependencias:** Detección de paquetes virtuales y proveedores de fallback (ej: `qemu-user-binfmt`).
+*   **Multi-Formato Profesional:** Soporte para **VirtualBox**, **VMware**, **QEMU**, **RAW**, **RootFS**, **Vagrant** e **Hyper-V**.
+*   **Instalación Inteligente de Snaps:** Detección automática de requerimientos `--classic` para software creativo.
 
-## 🎨 Solución para Creativos sin Presupuesto
-¿Tu PC no puede con las suscripciones de Adobe o los requisitos de Windows 11?
-- **Ilustración:** Cambia Photoshop por **Krita**. Es gratuito, de código abierto y usado por profesionales de la industria del anime y el cómic.
-- **Vídeo:** **Kdenlive** y **DaVinci Resolve** (versión Linux) ofrecen herramientas de montaje de nivel cinematográfico sin coste de licencia.
-- **3D:** **Blender** corre mejor en Linux, aprovechando mejor la RAM y la CPU para renderizados.
-- **Streaming:** **OBS Studio** en Linux consume menos recursos, permitiendo emitir con mayor calidad en hardware modesto.
+## 📘 Guía para Principiantes y Profesionales
+
+### 🎓 Estudiantes de IT
+- **Ciberseguridad:** Crea máquinas "víctima" y "atacante" con configuraciones de red aisladas.
+- **Microinformática:** Observa cómo `debootstrap` instala solo lo necesario. Es la base para entender el "minimalismo" informático.
+
+### 🪟 Si vienes de Windows
+- **Software Equivalente:** Usa **LibreOffice** por Office, **GIMP** por Photoshop y **Inkscape** por Illustrator. La mayoría son gratuitos y de código abierto.
+- **Instalación Segura:** Aquí no descargas archivos ".exe" extraños. Todo viene de repositorios verificados por la comunidad.
+
+### 🎨 Creativos y Streamers
+- **Ilustración:** Conecta tu tableta gráfica (Wacom, Huion, XP-Pen) y abre **Krita**. La gestión de presión y color es asombrosa.
+- **Edición de Vídeo:** **Kdenlive** permite editar en 4K con proxies, ideal si tu equipo tiene pocos recursos.
+- **Streaming:** **OBS Studio** en Linux consume menos CPU, permitiendo que tus juegos o aplicaciones de diseño funcionen mejor mientras emites.
 
 ## 🛠️ Guía de Inicio Rápido
-Crea tu entorno creativo o técnico con un solo comando:
 ```bash
-# Ejemplo: Ubuntu con escritorio XFCE (muy ligero) y software de edición
-sudo ./create_vm.sh --name estudio_creativo --os ubuntu --desktop xfce --flatpak kdenlive,krita,obs-studio
+# Ejemplo: Crear una máquina para un estudiante de redes
+sudo ./create_vm.sh --name lab_redes --os debian --ram 1024 --desktop none --apt nmap,tcpdump
+
+# Ejemplo: Crear una estación para un ilustrador digital
+sudo ./create_vm.sh --name estudio_arte --os ubuntu --desktop xfce --apt krita,gimp,inkscape
 ```
-*Nota: Se requieren privilegios de superusuario (sudo) para la construcción de la imagen.*
 
 ## 📚 Bibliografía y Recursos de Aprendizaje
 
-### 🛠️ Sistemas y Administración (SMR/ASIR)
-1.  **Debian Handbook:** La guía definitiva del administrador Linux. [Acceso gratuito](https://www.debian.org/doc/manuals/debian-handbook/index.es.html).
-2.  **Snapcraft Documentation:** Aprende sobre el sistema de paquetes universales y confinamiento. [snapcraft.io/docs](https://snapcraft.io/docs).
-3.  **Arch Wiki:** El mejor recurso sobre conceptos generales de Linux. [wiki.archlinux.org](https://wiki.archlinux.org/).
-3.  **Linux Journey:** Aprende Linux paso a paso de forma interactiva. [linuxjourney.com](https://linuxjourney.com/).
-4.  **FHS Standard:** Entendiendo la jerarquía del sistema de archivos.
+### 🛠️ Tecnología y Sistemas
+1.  **Debian Administrator's Handbook:** La guía definitiva para entender el sistema. [debian-handbook.info](https://debian-handbook.info/browse/stable/).
+2.  **Linux Journey:** Un curso estructurado desde lo más básico hasta la administración de servidores. [linuxjourney.com](https://linuxjourney.com/).
+3.  **Vagrant Docs:** Aprende a automatizar tus laboratorios de pruebas. [vagrantup.com/docs](https://www.vagrantup.com/docs).
+4.  **QEMU Documentation:** Entiende cómo funciona la emulación de hardware. [qemu.org/docs](https://www.qemu.org/docs/master/).
 
-### 💻 Programación y Desarrollo
-5.  **The Linux Command Line:** El libro esencial para dominar la terminal. [linuxcommand.org](https://linuxcommand.org/tlcl.php).
-6.  **Google Shell Style Guide:** Estándares profesionales de programación en Shell.
-7.  **Full Stack Open:** Curso excelente que cubre despliegue en entornos Linux. [fullstackopen.com](https://fullstackopen.com/es/).
+### 🎨 Creación Multimedia y Diseño
+5.  **Krita Manual:** Manual profesional para artistas digitales. [docs.krita.org](https://docs.krita.org/).
+6.  **Ubuntu Studio Manual:** Guía para configurar un sistema de producción multimedia de alto nivel. [ubuntustudio.org/manual/](https://ubuntustudio.org/manual/).
+7.  **Blender Fundamentals:** Aprende el estándar de la industria 3D. [docs.blender.org](https://docs.blender.org/manual/es/latest/).
+8.  **Kdenlive User Manual:** Edición de vídeo profesional paso a paso. [docs.kdenlive.org](https://docs.kdenlive.org/).
 
-### 🛡️ Ciberseguridad
-8.  **OverTheWire (Bandit):** Aprende seguridad y terminal mediante juegos de retos. [overthewire.org](https://overthewire.org/wargames/bandit/).
-9.  **Hack The Box Academy:** Fundamentos de Linux para ciberseguridad.
-10. **OWASP DevSecOps:** Seguridad en el ciclo de desarrollo y automatización.
-
-### 🔌 Microinformática y Hardware Virtual
-11. **VBoxManage Reference:** Control total de VirtualBox desde CLI. [virtualbox.org](https://www.virtualbox.org/manual/ch08.html).
-12. **Proxmox Documentation:** Aprende sobre virtualización de nivel empresarial.
-13. **QEMU/KVM Virtualization:** [Kernel-based Virtual Machine](https://www.linux-kvm.org/).
-14. **SystemRescue:** El kit de supervivencia para técnicos de sistemas. [system-rescue.org](https://www.system-rescue.org/).
-
-### 🎨 Diseño, Ilustración y Streaming
-15. **Krita Digital Painting:** Manual profesional de ilustración. [krita.org](https://docs.krita.org/).
-16. **Blender 3D:** El estándar de código abierto para 3D y VFX. [blender.org](https://docs.blender.org/).
-17. **OBS Studio Wiki:** Configuración avanzada para streamers en Linux.
-18. **PipeWire Guide:** Gestión moderna de audio/video. [pipewire.org](https://pipewire.org/).
-19. **Linux Music Workflow:** Producción de audio y MIDI sin latencia.
-
-### 🐧 Interesados en Linux (Transición desde Windows)
-20. **Linux Journey (Español):** Guía visual para principiantes.
-21. **Ubuntu Community Help:** Soluciones a problemas comunes al migrar.
-22. **AlternativeTo:** Encuentra el equivalente en Linux de tus apps de Windows. [alternativeto.net](https://alternativeto.net/).
-23. **DistroSea:** Prueba Linux en tu navegador antes de instalarlo.
-24. **It's FOSS:** El portal de referencia para noticias y tutoriales de Linux. [itsfoss.com](https://itsfoss.com/).
+### 🐧 Transición y Cultura Digital
+9.  **AlternativeTo Linux:** Busca las mejores alternativas libres a tus programas de Windows. [alternativeto.net](https://alternativeto.net/platform/linux/).
+10. **It's FOSS:** El mejor blog para principiantes que quieren consejos prácticos. [itsfoss.com](https://itsfoss.com/).
+11. **DistroSea:** Prueba Linux en tu navegador sin instalar nada. [distrosea.com](https://distrosea.com/).
+12. **Free Software Foundation (FSF):** Aprende sobre la importancia ética del software libre. [fsf.org](https://www.fsf.org/).
 
 ---
-*Desarrollado como herramienta de apoyo para la formación profesional en informática y comunicaciones.*
+*Este proyecto es una herramienta de resistencia digital, diseñada para que nadie se quede atrás por motivos económicos o falta de acceso a hardware costoso.*

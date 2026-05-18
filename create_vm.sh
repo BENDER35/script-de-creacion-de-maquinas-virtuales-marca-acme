@@ -74,7 +74,7 @@ Opciones:
   --help                Muestra esta ayuda.
   --name NOMBRE         Nombre de la VM (defecto: acme_vm_[timestamp]).
   --os SO               Sistema operativo: ubuntu o debian (defecto: ubuntu).
-  --hyp HYPERVISOR      Hypervisor: vbox, vmware, qemu (defecto: vbox).
+  --hyp HYPERVISOR      Hypervisor: vbox, vmware, qemu, raw, rootfs, vagrant, hyperv (defecto: vbox).
   --ram MB              Cantidad de RAM en MB (defecto: 2048).
   --disk SIZE           Tamaño del disco (ej: 50G) (defecto: 50G).
   --cpucores NUM        Número de núcleos de CPU (defecto: 2).
@@ -264,7 +264,7 @@ analyze_snaps() {
 
 check_dependencies() {
     log "Verificando dependencias en el host para $HYPERVISOR..." "INFO"
-    local deps=("curl" "qemu-img" "zip" "7z" "rar" "openssl" "bc" "jq" "debootstrap" "parted" "kpartx" "binfmt-support" "qemu-user-static")
+    local deps=("curl" "qemu-img" "zip" "7z" "rar" "openssl" "bc" "jq" "debootstrap" "parted" "kpartx" "binfmt-support" "qemu-user-static" "tar" "gzip")
     [[ "$HYPERVISOR" == "vbox" ]] && deps+=("VBoxManage")
     
     local missing=()
@@ -276,6 +276,8 @@ check_dependencies() {
         elif dpkg-query -W -f='${Status}' "$dep" 2>/dev/null | grep -q "ok installed"; then
             found=1
         elif [[ "$dep" == "binfmt-support" ]] && [[ -f /usr/sbin/update-binfmts ]]; then
+            found=1
+        elif [[ "$dep" == "qemu-user-static" ]] && (ls /usr/bin/qemu-*-static &>/dev/null || ls /usr/bin/qemu-*-binfmt &>/dev/null); then
             found=1
         fi
         
@@ -296,6 +298,7 @@ check_dependencies() {
             case $m in
                 7z) sudo apt-get install -y p7zip-full || sudo apt-get install -y p7zip ;;
                 rar) sudo apt-get install -y unrar-free || sudo apt-get install -y rar ;;
+                qemu-user-static) sudo apt-get install -y qemu-user-static || sudo apt-get install -y qemu-user-binfmt || sudo apt-get install -y qemu-user-binfmt-hwe ;;
                 *) sudo apt-get install -y "$m" ;;
             esac
         done
@@ -312,10 +315,18 @@ if [[ -z "$NAME" ]]; then
     [[ -z "$NAME" ]] && NAME="acme_vm_$(date +%s)"
 fi
 
-if [[ -z "$HYPERVISOR" ]]; then
-    echo "Hypervisor: 1) VirtualBox 2) VMware 3) QEMU"
+if [[ -z "$HYPERVISOR" || "$HYPERVISOR" == "vbox" ]]; then
+    echo "Formato/Hypervisor: 1) VirtualBox 2) VMware 3) QEMU 4) RAW 5) RootFS 6) Vagrant 7) Hyper-V"
     read -p "Opción [1]: " hyp_opt
-    case $hyp_opt in 2) HYPERVISOR="vmware" ;; 3) HYPERVISOR="qemu" ;; *) HYPERVISOR="vbox" ;; esac
+    case $hyp_opt in
+        2) HYPERVISOR="vmware" ;;
+        3) HYPERVISOR="qemu" ;;
+        4) HYPERVISOR="raw" ;;
+        5) HYPERVISOR="rootfs" ;;
+        6) HYPERVISOR="vagrant" ;;
+        7) HYPERVISOR="hyperv" ;;
+        *) HYPERVISOR="vbox" ;;
+    esac
 fi
 
 check_dependencies
@@ -499,13 +510,15 @@ log "Preparando fase CHROOT..." "INFO"
 
 # Determinar paquetes de herramientas de invitado y kernel (Host Logic)
 G_PKG=""
-if [[ "$HYPERVISOR" == "vbox" ]]; then
+if [[ "$HYPERVISOR" == "vbox" || "$HYPERVISOR" == "vagrant" ]]; then
     G_PKG="virtualbox-guest-x11 virtualbox-guest-utils"
     [[ "$OS" == "debian" ]] && G_PKG="$G_PKG virtualbox-guest-dkms"
 elif [[ "$HYPERVISOR" == "vmware" ]]; then
     G_PKG="open-vm-tools-desktop"
 elif [[ "$HYPERVISOR" == "qemu" ]]; then
     G_PKG="qemu-guest-agent"
+elif [[ "$HYPERVISOR" == "hyperv" ]]; then
+    G_PKG="hyperv-daemons"
 fi
 
 if [[ "$OS" == "ubuntu" ]]; then
@@ -521,6 +534,12 @@ export DEBIAN_FRONTEND=noninteractive
 # No set -e here to allow custom error handling for optional packages
 set +e
 [[ "$VERBOSE_MODE" == "s" ]] && set -x
+
+# --- PREVENCIÓN DE BLOQUEO POR SERVICIOS ---
+# Crear policy-rc.d para evitar que los servicios intenten arrancar en chroot
+# Esto evita que paquetes como ModemManager bloqueen la instalación
+echo -e '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d
+chmod +x /usr/sbin/policy-rc.d
 
 echo "Configurando sistema (chroot phase)..."
 
@@ -818,6 +837,11 @@ fi
 # Opción 1: Añadir módulos críticos y recheck para evitar errores de carga
 grub-install --target=i386-pc --force --recheck --modules="part_msdos ext2 biosdisk" "\$1"
 update-grub
+
+# --- LIMPIEZA DE PREVENCIÓN ---
+# Restaurar la capacidad de arrancar servicios antes de salir del chroot
+rm -f /usr/sbin/policy-rc.d
+
 CHROOT_SCRIPT
 
 UUID=$(sudo blkid -s UUID -o value "$PART_DEV")
@@ -834,6 +858,11 @@ for d in dev dev/pts proc sys run; do
     sudo mount --bind /$d "$MOUNT_DIR/$d"
 done
 sudo chroot "$MOUNT_DIR" /bin/bash /setup.sh "$LOOP_DEV"
+
+if [[ "$HYPERVISOR" == "rootfs" ]]; then
+    log "Creando tarball del rootfs..." "INFO"
+    sudo tar -czf "$VM_PATH/${NAME}_rootfs.tar.gz" --exclude=./proc --exclude=./sys --exclude=./dev --exclude=./run -C "$MOUNT_DIR" .
+fi
 
 log "Configuración CHROOT finalizada. Limpiando montajes..." "INFO"
 for d in run sys proc dev/pts dev; do 
@@ -872,20 +901,57 @@ config.version = "8"; virtualHW.version = "14"; memsize = "$VM_RAM"; numvcpus = 
 scsi0.present = "TRUE"; scsi0.virtualDev = "lsilogic"; scsi0:0.present = "TRUE"; scsi0:0.fileName = "${NAME}.vmdk"
 ethernet0.present = "TRUE"; ethernet0.connectionType = "nat"; ethernet0.virtualDev = "e1000"
 EOF
+elif [[ "$HYPERVISOR" == "raw" ]]; then
+    log "Manteniendo formato RAW..." "DEBUG"
+    mv "$RAW_DISK" "$VM_PATH/${NAME}.raw"
+    RAW_DISK="" # Evitar que se borre al final
+elif [[ "$HYPERVISOR" == "rootfs" ]]; then
+    log "RootFS ya creado. Eliminando disco RAW..." "DEBUG"
+    mv "$VM_PATH/${NAME}_rootfs.tar.gz" "./${NAME}_rootfs.tar.gz"
+    log "RootFS disponible en ./${NAME}_rootfs.tar.gz" "INFO"
+elif [[ "$HYPERVISOR" == "hyperv" ]]; then
+    log "Convirtiendo RAW a VHDX..." "DEBUG"
+    qemu-img convert -f raw -O vhdx "$RAW_DISK" "$VM_PATH/${NAME}.vhdx"
+elif [[ "$HYPERVISOR" == "vagrant" ]]; then
+    log "Creando Vagrant Box (Libvirt)..." "DEBUG"
+    qemu-img convert -f raw -O qcow2 "$RAW_DISK" "$VM_PATH/box.img"
+    # Tamaño virtual en bytes -> GB
+    V_SIZE=$(qemu-img info "$RAW_DISK" | grep "virtual size" | grep -oP '\(\K[0-9]+' || echo 21474836480)
+    V_SIZE_GB=$(( V_SIZE / 1024 / 1024 / 1024 ))
+    cat <<EOF_META > "$VM_PATH/metadata.json"
+{
+  "provider": "libvirt",
+  "format": "qcow2",
+  "virtual_size": $V_SIZE_GB
+}
+EOF_META
+    cat <<EOF_VAGRANT > "$VM_PATH/Vagrantfile"
+Vagrant.configure("2") do |config|
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.driver = "kvm"
+  end
+end
+EOF_VAGRANT
+    tar -czf "./${NAME}.box" -C "$VM_PATH" metadata.json Vagrantfile box.img
+    log "Vagrant box creada en ./${NAME}.box" "INFO"
 else
     log "Convirtiendo RAW a QCOW2..." "DEBUG"
     qemu-img convert -f raw -O qcow2 "$RAW_DISK" "$VM_PATH/${NAME}.qcow2"
 fi
-rm -f "$RAW_DISK"
+[[ -n "$RAW_DISK" ]] && rm -f "$RAW_DISK"
 
 # --- PACKAGING ---
 if [[ "$COMPRESS_FORMAT" != "none" ]]; then
-    log "Empaquetando máquina virtual en formato $COMPRESS_FORMAT..." "INFO"
-    case $COMPRESS_FORMAT in
-        zip) zip -r "${NAME}.zip" "$VM_PATH" ;;
-        rar) rar a "${NAME}.rar" "$VM_PATH" ;;
-        7z) 7z a "${NAME}.7z" "$VM_PATH" && 7z t "${NAME}.7z" || { log "Error en 7z, usando respaldo ZIP" "WARNING"; zip -r "${NAME}.zip" "$VM_PATH"; } ;;
-    esac
+    if [[ "$HYPERVISOR" == "vagrant" || "$HYPERVISOR" == "rootfs" ]]; then
+        log "El formato $HYPERVISOR ya está empaquetado. Saltando compresión adicional." "INFO"
+    else
+        log "Empaquetando máquina virtual en formato $COMPRESS_FORMAT..." "INFO"
+        case $COMPRESS_FORMAT in
+            zip) zip -r "${NAME}.zip" "$VM_PATH" ;;
+            rar) rar a "${NAME}.rar" "$VM_PATH" ;;
+            7z) 7z a "${NAME}.7z" "$VM_PATH" && 7z t "${NAME}.7z" || { log "Error en 7z, usando respaldo ZIP" "WARNING"; zip -r "${NAME}.zip" "$VM_PATH"; } ;;
+        esac
+    fi
     log "Limpiando archivos temporales de construcción..." "DEBUG"
     rm -rf "$VM_PATH" "$CONFIG_DIR/$NAME"
 fi
