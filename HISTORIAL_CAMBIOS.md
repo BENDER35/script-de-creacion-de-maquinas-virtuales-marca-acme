@@ -1,86 +1,86 @@
-# Historial de Cambios - Creador de Máquinas Virtuales Marca Acme
+# Change History - Virtual Machine Creator Marca Acme
 
-Este documento detalla la evolución del script `create_vm.sh` y las tareas realizadas en el proyecto.
+This document details the evolution of the `create_vm.sh` script and the tasks performed in the project.
 
 ## [1.7.1] - 2026-10-13
-### Añadido
-- **Sistema de Caché de Mirrors**: Implementación de caché local para almacenar el mirror más rápido encontrado, evitando testees redundantes en ejecuciones subsiguientes.
-- **Pruebas Paralelas de Mirrors**: Optimización del testeo de mirrors reduciendo el número de candidates de 20 a 10, reduciendo el tiempo de selección en aproximadamente un 70%.
-- **Mejoras en Descargas de Wallhaven**: Agregado de lógica de reintentos (retries) y filtrado por extensiones de imagen (.jpg, .png, .gif, .webp) para evitar descargas fallidas y asegurar solo archivos de imagen válidos.
-- **Validación de Entrada en Parsing de Argumentos**: Validación en tiempo real para --ram, --cpucores y --disk inmediatamente después de la entrada del usuario.
-- **Corrección de Expansión de Variables en GRUB**: Solucionado el problema donde `$1` dentro del script chroot no expandía correctamente el dispositivo. Ahora incluye una nota explicativa.
-- **Mejora en la Detección de IDs de Flatpak**: Mejorada la lógica para distinguir entre IDs completos de Flatpak y nombres de paquetes, evitando búsquedas descriptivas incorrectas.
-- **Manejo de Errores Mejorado**: Mejor manejo de errores en la selección de mirrors, instalación de Flatpak y descargas de wallpapers.
+### Added
+- **Mirror Cache System**: Implementation of local cache to store the fastest mirror found, avoiding redundant testing in subsequent runs.
+- **Parallel Mirror Testing**: Optimization of mirror testing by reducing the number of candidates from 20 to 10, reducing selection time by approximately 70%.
+- **Wallhaven Download Improvements**: Added retry logic (retries) and image format filtering (.jpg, .png, .gif, .webp) to prevent failed downloads and ensure only valid image files are saved.
+- **Argument Parsing Input Validation**: Real-time validation for --ram, --cpucores and --disk immediately after user input.
+- **GRUB Variable Expansion Fix**: Solved the problem where `$1` inside the chroot script did not expand correctly the device parameter. Now includes an explanatory comment in the code.
+- **Flatpak ID Detection Improvement**: Enhanced logic to properly distinguish between complete Flatpak IDs and package names, avoiding incorrect descriptive searches.
+- **Improved Error Handling**: Better error handling in mirror selection, Flatpak installation and wallpaper downloads.
 
-### Modificado
-- **Estructura de Argumentos**: Agregada validación de hipervisores, sistemas operativos y valores numéricos positivos en el parsing de argumentos `--name`, `--os`, `--hyp`, `--ram`, `--cpucores` y `--disk`.
-- **Limpieza de Contraseñas**: Mejorada la gestión de la contraseña de usuario mediante `read -s` y validación de fortaleza.
-- **Refactorización de Funciones**: Las funciones de selección de mirrors (`find_fastest_mirror`, `find_fastest_mirror_parallel`) ahora utilizan caché y tienen mejor manejo de errores de `curl`.
+### Modified
+- **Argument Structure**: Added validation of hypervisors, operating systems and positive numeric values in the argument parsing --name, --os, --hyp, --ram, --cpucores and --disk.
+- **Password Cleanup**: Improved password management using `read -s` and strength validation.
+- **Function Refactoring**: Mirror selection functions (`find_fastest_mirror`, `find_fastest_mirror_parallel`) now use cache and have better `curl` error handling.
 
-### Corrección
-- **Error de Expansión de `$1` en GRUB**: Se corrigió el problema donde `$1` en la línea de `grub-install` se expandía al momento de escribir el script en lugar de ejecutarse en chroot. Se añadió documentación en comentario.
-- **Manejo de Variables en Scripts Heredoc**: Se ajustaron las variables `$p` y `$initial_flags` en las secciones de Flatpak y Snaps para asegurar la expansión correcta al ejecutarse en la VM.
+### Correction
+- **GRUB `$1` Expansion Error**: Fixed the problem where `$1` in the `grub-install` line expanded at the time of writing the script instead of executing in chroot. An explanatory comment was added.
+- **Variable Handling in Heredocs**: Adjusted `$p` and `$initial_flags` variables in Flatpak and Snaps sections to ensure correct expansion when executed in the VM.
 
 ## [1.7.0] - 2026-05-18
-### Añadido
-- **Sistema Anti-Bloqueo de Servicios (Propuesta 1)**: Implementación de `policy-rc.d` para garantizar la estabilidad absoluta durante la fase de construcción (`chroot`).
-  - **Prevención de Cuelgues**: Evita que servicios como `ModemManager`, `MySQL` o `Apache` intenten arrancar dentro del entorno enjaulado, lo que causaba bloqueos infinitos en Hyper-V y otros entornos.
-  - **Aislamiento de Instalación**: Asegura que el proceso de `apt-get install` se centre únicamente en desempaquetar y configurar archivos, delegando el arranque de servicios al primer inicio real de la VM.
-- **Documentación Multidisciplinar (v2)**: Renovación total del README y la Documentación Técnica enfocada en la inclusión socioprofesional.
-  - **Iniciación Técnica**: Guías específicas para estudiantes de Sistemas, Programación, Ciberseguridad y Microinformática (SMR/ASIR/DAM/DAW).
-  - **Resistencia Creativa**: Sección dedicada a ilustradores, diseñadores y editores de vídeo que migran a Linux por ahorro de costes y hardware antiguo.
-  - **Puente Windows-Linux**: Manual de aterrizaje suave para usuarios que abandonan ecosistemas propietarios.
-  - **Bibliografía Académica y Profesional**: Inclusión de fuentes de consulta técnica y manuales de software creativo (Krita, Blender, OBS) en todos los documentos.
+### Added
+- **Anti-Blocking Services System (Proposal 1)**: Implementation of `policy-rc.d` to guarantee absolute stability during the construction phase (`chroot`).
+  - **Hang Prevention**: Avoids services like `ModemManager`, `MySQL` or `Apache` attempting to start within the enjailed environment, which caused infinite blocks in Hyper-V and other environments.
+  - **Installation Isolation**: Ensures the `apt-get install` process focuses solely on unpacking and configuring files, delegating service startup to the VM's first real boot.
+- **Multidisciplinary Documentation (v2)**: Total renewal of the README and Technical Documentation focused on socioprofessional inclusion.
+  - **Technical Initiation**: Guides specific for Students of Systems, Programming, Cybersecurity and Microinformatics (SMR/ASIR/DAM/DAW).
+  - **Creative Resistance**: Section dedicated to illustrators, designers and video editors who migrate to Linux for cost savings and old hardware.
+  - **Windows-Linux Bridge**: Smooth landing manual for users leaving proprietary ecosystems.
+  - **Academic and Professional Bibliography**: Inclusion of technical consultation sources and creative software manuals (Krita, Blender, OBS) in all documents.
 
-### Modificado
-- **Lógica de Dependencias**: Mejora en la detección de paquetes virtuales y proveedores de fallback.
+### Modified
+- **Dependency Logic**: Improvement in virtual package detection and fallback providers.
 
 ## [1.6.1] - 2026-05-17
-### Corregido
-- **Fallo de Dependencias (Virtual Packages)**: Se ha solucionado el error crítico que impedía la instalación de `qemu-user-static` en distribuciones modernas (como Ubuntu 26.04 "Resolute").
-  - **Lógica de Fallback**: El script ahora detecta si `qemu-user-static` es un paquete virtual e intenta automáticamente la instalación de sus proveedores (`qemu-user-binfmt` o `qemu-user-binfmt-hwe`).
-  - **Detección por Binarios**: Se ha mejorado la verificación de dependencias para comprobar la existencia real de los binarios en `/usr/bin/` antes de intentar una instalación redundante.
+### Corrected
+- **Virtual Packages Failure**: The critical error that prevented installation of `qemu-user-static` in modern distributions (such as Ubuntu 26.04 "Resolute") has been solved.
+  - **Fallback Logic**: The script now detects if `qemu-user-static` is a virtual package and automatically attempts installation of its providers (`qemu-user-binfmt` or `qemu-user-binfmt-hwe`).
+  - **Binary Detection**: Improved dependency verification to check the real existence of binaries in `/usr/bin/` before attempting a redundant installation.
 
 ## [1.6.0] - 2026-05-17
-### Añadido
-- **Expansión Multi-Hypervisor (7 formatos)**: Soporte nativo para **RAW**, **RootFS**, **Vagrant** (Libvirt) e **Hyper-V** (VHDX), además de los originales.
-- **Soporte Netplan Avanzado**: Implementación de renderizadores dinámicos (`networkd` para servidores, `NetworkManager` para escritorios) en Ubuntu.
-- **Vagrant Boxes**: Generación automática de archivos `metadata.json` y `Vagrantfile` para el despliegue inmediato de laboratorios.
+### Added
+- **Multi-Hypervisor Expansion (7 formats)**: Native support for **RAW**, **RootFS**, **Vagrant** (Libvirt) and **Hyper-V** (VHDX), in addition to the original ones.
+- **Advanced Netplan Support**: Implementation of dynamic renderers (`networkd` for servers, `NetworkManager` for desktops) in Ubuntu.
+- **Vagrant Boxes**: Automatic generation of `metadata.json` and `Vagrantfile` files for immediate laboratory deployment.
 
 ## [1.5.1] - 2026-05-13
-### Corregido
-- **Estabilidad de Red en Debian**: Mejora de la configuración de `/etc/network/interfaces` para evitar bloqueos durante el arranque.
-- **Gestión de Dispositivos Loop**: Refactorización del sistema de limpieza (`cleanup trap`) para asegurar la liberación de dispositivos en caso de error.
+### Corrected
+- **Debian Network Stability**: Improvement of the `/etc/network/interfaces` configuration to avoid blocks during boot.
+- **Device Loop Management**: Refactoring of the `cleanup trap` system to ensure device release in case of error.
 
 ## [1.5.0] - 2026-05-08
-### Añadido
-- **Sistema Smart Snap (First Boot)**: Creación de un servicio `systemd` temporal que instala Snaps en el primer arranque, solucionando la limitación de `chroot`.
-- **Integración con extrepo**: Soporte para habilitar repositorios externos de forma segura (ej: VSCode, Signal).
-- **Descargas Wallhaven Multi-Query**: Capacidad de buscar y descargar fondos de pantalla de múltiples categorías simultáneamente.
+### Added
+- **Smart Snap (First Boot)**: Creation of a temporary `systemd` service that installs Snaps on first boot, solving the `chroot` limitation.
+- **extrepo Integration**: Support for safely enabling external repositories (e.g.: VSCode, Signal).
+- **Multi-Query Wallhaven Downloads**: Capacity to search and download wallpapers from multiple categories simultaneously.
 
 ## [1.4.0] - 2026-05-07
-### Añadido
-- **Motor de Construcción debootstrap**: Transición de un sistema basado en ISO a la inyección directa de paquetes, permitiendo personalización total desde cero.
-- **Selector de Escritorios**: Soporte para GNOME, KDE, XFCE, LXDE, LXQt, Budgie, MATE, Unity y sabores educativos/multimedia.
-- **Gestión de Compresión**: Opciones para empaquetar resultados en ZIP, RAR y 7z con verificación de integridad.
+### Added
+- **Bootstrap Construction Engine**: Transition from an ISO-based system to direct package injection, allowing total customization from scratch.
+- **Desktop Selector**: Support for GNOME, KDE, XFCE, LXDE, LXQt, Budgie, MATE, Unity and educational/multimedia flavors.
+- **Compression Management**: Options to package results in ZIP, RAR and 7z with integrity verification.
 
 ## [1.3.0] - 2026-05-07
-### Añadido
-- **API de Wallhaven**: Integración inicial para la descarga automatizada de recursos visuales basados en etiquetas.
-- **Gestión de Fondos Locales**: Capacidad de inyectar fondos de pantalla desde una ruta del host a la VM.
-- **Modo Verbose**: Implementación de depuración detallada (`set -x`) para resolución de problemas técnicos.
+### Added
+- **Wallhaven API**: Initial integration for automated visual resource download based on tags.
+- **Local Wallpaper Management**: Capacity to inject wallpapers from a host path to the VM.
+- **Verbose Mode**: Implementation of detailed debugging (`set -x`) for technical problem resolution.
 
 ## [1.2.0] - 2026-05-07
-### Añadido
-- **Arquitectura Multi-Hypervisor Inicial**: Soporte para **VirtualBox**, **VMware** y **QEMU**.
-- **Conversión Automática de Disco**: Uso de `qemu-img` y `VBoxManage` para exportar formatos VDI, VMDK y QCOW2.
+### Added
+- **Initial Multi-Hypervisor Architecture**: Support for **VirtualBox**, **VMware** and **QEMU**.
+- **Automatic Disk Conversion**: Use of `qemu-img` and `VBoxManage` to export VDI, VMDK and QCOW2 formats.
 
 ## [1.1.0] - 2026-05-06
-### Añadido
-- **Optimización de Mirrors**: Algoritmos de detección de espejos más cercanos por geolocalización y testeo de latencia paralelo.
-- **Personalización de Usuario**: Inclusión de prompts para definir usuarios y contraseñas personalizados (SUDO por defecto).
+### Added
+- **Mirror Optimization**: Algorithms for detecting mirrors closer by geolocation and parallel latency testing.
+- **User Personalization**: Inclusion of prompts to define custom users and passwords (SUDO by default).
 
 ## [1.0.0] - 2026-05-06
-### Añadido
-- **MVP (Producto Mínimo Viable)**: Script base automatizado para la creación de máquinas virtuales Ubuntu/Debian mediante generación de ISOs de autoinstalación.
-- **Estructura de Directorios**: Definición de carpetas `vms`, `configs` e `isos`.
+### Added
+- **MVP (Minimum Viable Product)**: Script base automatized for the creation of Ubuntu/Debian virtual machines through generation of auto-installation ISOs.
+- **Directory Structure**: Definition of `vms`, `configs` and `isos` folders.

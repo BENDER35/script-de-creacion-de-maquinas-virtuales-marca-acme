@@ -12,21 +12,23 @@ This tool allows creating customized (Debian/Ubuntu) virtual machine images full
     *   **Network Labs:** Generates complete infrastructures in seconds to practice routing, firewalling or pentesting.
     *   **Automation (DAW/DAM):** Study the source code to master Bash and infrastructure as code (IaC).
 *   **Windows Migrants (Home and Office):**
-    **Safe Transition:** Don't break your main computer. Create virtual machines to learn Linux, its terminal and its freedom philosophy without risks.
-    **Total Privacy:** Forget data tracking and forced updates that slow down your work.
+    *   **Safe Transition:** Don't break your main computer. Create virtual machines to learn Linux, its terminal and its freedom philosophy without risks.
+    *   **Total Privacy:** Forget data tracking and forced updates that slow down your work.
 *   **Creatives (Design, Illustration, Video and Streaming):**
-    **Economic Alternative:** If you can't afford monthly Adobe subscriptions or your hardware doesn't support Windows 11, Linux is your salvation.
-    **Old Hardware:** Give a second life to that equipment Windows considers "obsolete". Linux flies where other systems crawl.
-    **Professional Software:** Use **Krita** for illustration, **Blender** for 3D, **Kdenlive** for video editing and **OBS Studio** for your broadcasts.
+    *   **Economic Alternative:** If you can't afford monthly Adobe subscriptions or your hardware doesn't support Windows 11, Linux is your salvation.
+    *   **Old Hardware:** Give a second life to that equipment Windows considers "obsolete". Linux flies where other systems crawl.
+    *   **Professional Software:** Use **Krita** for illustration, **Blender** for 3D, **Kdenlive** for video editing and **OBS Studio** for your broadcasts.
 
 ## 🚀 Key Features (v1.7.1)
 
-*   **Anti-Blocking `policy-rc.d` System:** Guarantees that installation never stops due to rebel services (like `ModemManager`). Absolute stability in Hyper-V and virtualized environments.
+*   **Anti-Blocking `policy-rc.d` System:** Guarantees that installation never stops due to rebel services (like `ModemManager`). **Absolute stability in Hyper-V and virtualized environments**. Features **color-coded logging** for better visual feedback during execution (Red for errors, Yellow for warnings, Green for info, Cyan for debug).
 *   **Smart Dependency Management:** Detection of virtual packages and fallback providers (e.g.: `qemu-user-binfmt`).
 *   **Professional Multi-Format:** Support for **VirtualBox**, **VMware**, **QEMU**, **RAW**, **RootFS**, **Vagrant** and **Hyper-V**.
 *   **Intelligent Snap Installation:** Automatic detection of `--classic` requirements for creative software.
 *   **Mirror Caching:** Caches the fastest mirror found to speed up subsequent runs.
-* **Parallel Mirror Testing:** Finds the fastest mirror through parallel network testing.
+*   **Parallel Mirror Testing:** Finds the fastest mirror through parallel network testing, reducing selection time by approximately 70%.
+*   **Legacy Ubuntu Support:** Permite crear máquinas virtuales de Ubuntu incluso en versiones que ya no tienen soporte oficial. El script permite especificar un codename personalizado y emite una advertencia si la versión no tiene soporte oficial.
+*   **Kali Linux Support:** The script now supports creating virtual machines with Kali Linux, the leading penetration testing distribution. Includes support for Kali Rolling (default) and various desktop environments (Kali GNOME, Kali KDE, Kali XFCE, Kali LXQt, Kali MATE).
 
 ## 📘 Beginner and Professional Guide
 

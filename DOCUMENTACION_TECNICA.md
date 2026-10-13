@@ -12,6 +12,7 @@ The `create_vm.sh` script implements a layered build logic, designed to be resil
         -   At the start of the `chroot`, this script is created returning exit code `101`.
         -   This code tells Debian/Ubuntu post-installation scripts **not to attempt to start the service**.
         -   At the end of the construction, the file is removed to allow normal system operation once the VM starts.
+    *   **Color-Coded Logging:** The script implements color-coded output for better visual feedback during execution (Red for errors, Yellow for warnings, Green for info, Cyan for debug messages).
 
 *   **Host Dependency Management:**
     Triple verification logic is used to ensure critical tools like `qemu-img` or `debootstrap` are present, including fallback systems for virtual packages in modern Ubuntu versions.
@@ -24,6 +25,8 @@ The `create_vm.sh` script implements a layered build logic, designed to be resil
 
 *   **Parallel Mirror Testing:**
     Implements parallel network testing to find the fastest mirror from a list of candidates, significantly reducing mirror selection time.
+*   **Legacy Ubuntu Support:** The script now allows creating Ubuntu virtual machines even from versions that are no longer officially supported. Users can specify a custom codename, and the script will issue a warning if the version does not have official support.
+*   **Kali Linux Support:** The script now supports creating virtual machines with Kali Linux, the leading penetration testing distribution. Includes support for Kali Rolling (default) and various desktop environments (Kali GNOME, Kali KDE, Kali XFCE, Kali LXQt, Kali MATE).
 
 ## 2. Guidance Profile
 
@@ -34,11 +37,12 @@ The `create_vm.sh` script implements a layered build logic, designed to be resil
 
 ### B. Migrants from Windows (Survival and Efficiency)
 *   **Sustainable Hardware:** Linux allows old computers with older processors or without TPM chips to run fluently, something Windows 11 prohibits.
-* **Software Equivalences:** Flatpak is recommended to obtain always-updated versions of browsers and office tools without depending on the base system.
+*   **Software Equivalences:** Flatpak is recommended to obtain always-updated versions of browsers and office tools without depending on the base system.
+*   **Debian Versions:** The script now supports creating virtual machines with different Debian versions: **12 (bookworm)** (current stable), **11 (bullseye)** (previous stable), and **10 (buster)** (old stable).
 
 ### C. Creatives: Design, Video and Streaming (Resource Economy)
 *   **Low Latency Kernel:** The script facilitates the installation of the **Ubuntu Studio** flavor, optimizing the kernel to avoid "jitter" or latency in audio recordings and live streamings.
-* **Video Performance:** Without telemetry or heavy antivirus processes, Linux dedicates more CPU cycles to rendering in applications like **Blender** or **Kdenlive**.
+*   **Video Performance:** Without telemetry or heavy antivirus processes, Linux dedicates more CPU cycles to rendering in applications like **Blender** or **Kdenlive**.
 
 ## 3. Educational and Technical Resources
 
@@ -63,13 +67,13 @@ The `create_vm.sh` script implements a layered build logic, designed to be resil
 ## 4. Change Log Highlights (v1.7.1)
 
 *   **Mirror Caching System:** Added cache mechanism to store the fastest mirror found, avoiding redundant network testing.
-* **Parallel Mirror Testing:** Optimized mirror selection by limiting tests to the top 10 candidates, reducing selection time by approximately 70%.
+*   **Parallel Mirror Testing:** Optimized mirror selection by limiting tests to the top 10 candidates, reducing selection time by approximately 70%.
 *   **Wallpaper Download Improvements:** Added retry logic and image format filtering to prevent failed downloads and ensure only valid image files are saved.
-* **Dependency Validation:** Added input validation for RAM, CPU cores and disk size parameters at argument parsing time.
-* **GRUB Installation Fix:** Fixed variable expansion issue where `$1` inside the chroot script was not correctly passing the device parameter.
-* **Flatpak Improvement:** Improved Flatpak ID detection logic to properly distinguish between full IDs and package names.
-* **Error Handling:** Enhanced error handling in wallpaper downloads, Flatpak installation and mirror selection.
+*   **Dependency Validation:** Added input validation for RAM, CPU cores and disk size parameters at argument parsing time.
+*   **GRUB Installation Fix:** Fixed variable expansion issue where `$1` inside the chroot script was not correctly passing the device parameter.
+*   **Flatpak Improvement:** Improved Flatpak ID detection logic to properly distinguish between full IDs and package names.
+*   **Error Handling:** Enhanced error handling in wallpaper downloads, Flatpak installation and mirror selection.
 
 ## 5. Bibliography and Educational Resources
 
-(Same as Spanish version - see README.md for full list)
+(Same as README.md - see README.md for full list)

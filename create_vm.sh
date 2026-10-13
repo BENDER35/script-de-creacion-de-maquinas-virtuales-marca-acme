@@ -10,10 +10,6 @@ set -o pipefail
 FECHA_HOY=$(date +%d-%m-%Y)
 LOG_FILE="informe_imp_maqvirt(${FECHA_HOY}).log"
 
-# Directorio de caché para mirrors
-CACHE_DIR="${HOME}/.cache/acme-vm"
-mkdir -p "$CACHE_DIR"
-
 # Asegurar que el log sea un archivo nuevo en cada ejecución (si ya existe el del día, podemos rotarlo o añadir timestamp)
 # Para cumplir estrictamente con "cree un nuevo archivo log", si ya existe uno del mismo día, le añadiremos un sufijo de tiempo para no sobrescribir sesiones previas
 if [[ -f "$LOG_FILE" ]]; then
@@ -29,25 +25,6 @@ log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     # Ya no necesitamos tee aquí porque exec ya se encarga de la redirección global
     echo "[$timestamp] [$level] $message" >&2
-}
-
-# Función para obtener mirror caché si existe
-get_cached_mirror() {
-    local os_key="$1"
-    local cache_file="$CACHE_DIR/mirror_${os_key}_${FECHA_HOY}.txt"
-    if [[ -f "$cache_file" ]]; then
-        cat "$cache_file"
-        return 0
-    fi
-    return 1
-}
-
-# Función para guardar mirror en caché
-cache_mirror() {
-    local os_key="$1"
-    local mirror_url="$2"
-    local cache_file="$CACHE_DIR/mirror_${os_key}_${FECHA_HOY}.txt"
-    echo "$mirror_url" > "$cache_file"
 }
 
 # --- Cleanup Trap ---
@@ -141,75 +118,22 @@ OS_CODENAME=""
 VERBOSE_MODE="n"
 
 # --- Argument Parsing ---
-validate_hypervisor() {
-    local valid_hypervisors="vbox vmware qemu raw rootfs vagrant hyperv"
-    if echo " $valid_hypervisors " | grep -q " $1 "; then
-        return 0
-    return 1
-}
-
-validate_os() {
-    local valid_os="ubuntu debian"
-    if echo " $valid_os " | grep -q " $1 "; then
-        return 0
-    return 1
-}
-
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --help) show_help ;;
         --name) NAME="$2"; shift ;;
-        --os)
-            if validate_os "$2"; then
-                OS="$2"
-            else
-                log "Sistema operativo inválido: $2. Use 'ubuntu' o 'debian'." "ERROR"
-                show_help; exit 1
-            fi
-            shift ;;
-        --hyp)
-            if validate_hypervisor "$2"; then
-                HYPERVISOR="$2"
-            else
-                log "Hipervisor inválido: $2. Opciones: vbox, vmware, qemu, raw, rootfs, vagrant, hyperv" "ERROR"
-                show_help; exit 1
-            fi
-            shift ;;
-        --ram)
-            # Validar que sea un número entero positivo
-            if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -gt 0 ]; then
-                VM_RAM="$2"
-            else
-                log "RAM inválida: $2. Debe ser un número entero positivo." "ERROR"
-                exit 1
-            fi
-            shift ;;
-        --disk)
-            VM_DISK_SIZE="$2"
-            # Normalizar: quitar espacios y cambiar coma por punto decimal
-            VM_DISK_SIZE=${VM_DISK_SIZE// /}
-            VM_DISK_SIZE=${VM_DISK_SIZE//,/.}
-            # Validación de tamaño de disco
-            if [[ "$VM_DISK_SIZE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-                log "No se detectó unidad en el tamaño del disco, asumiendo Gigabytes (G)." "WARNING"
-                VM_DISK_SIZE="${VM_DISK_SIZE}G"
-            fi
-            shift ;;
-        --cpucores)
-            if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -gt 0 ]; then
-                VM_CPUS="$2"
-            else
-                log "Núcleos de CPU inválidos: $2. Debe ser un número entero positivo." "ERROR"
-                exit 1
-            fi
-            shift ;;
+        --os) OS="$2"; shift ;;
+        --hyp) HYPERVISOR="$2"; shift ;;
+        --ram) VM_RAM="$2"; shift ;;
+        --disk) VM_DISK_SIZE="$2"; shift ;;
+        --cpucores) VM_CPUS="$2"; shift ;;
         --user) VM_USER="$2"; shift ;;
         --pass) VM_PASS="$2"; shift ;;
         --flatpak) OPT_FLATPAK="$2"; shift ;;
         --desktop) DESKTOP="$2"; shift ;;
         --mirror) SELECTED_MIRROR="$2"; shift ;;
         --verbose) VERBOSE_MODE="s" ;;
-        *) echo "Opción desconocida: $1"; show_help ; exit 1 ;;
+        *) echo "Opción desconocida: $1"; show_help ;;
     esac
     shift
 done
@@ -217,15 +141,6 @@ done
 # --- Mirror Selection Logic ---
 find_fastest_mirror() {
     local os=$1
-    
-    # Intentar usar caché primero
-    local cached=$(get_cached_mirror "fastest_${os}")
-    if [[ -n "$cached" ]]; then
-        log "Usando mirror en caché: $cached"
-        echo "$cached"
-        return 0
-    fi
-    
     local mirrors=()
     log "Analizando mirrors para encontrar el más rápido..."
     if [[ "$os" == "ubuntu" ]]; then
@@ -244,15 +159,11 @@ find_fastest_mirror() {
         # Validar que time sea un número antes de pasarlo a bc
         if [[ ! "$time" =~ ^[0-9.]+$ ]]; then time=999; fi
         
-        if (( $(echo "$time < $min_time" | bc -l) 2>/dev/null)); then
+        if (( $(echo "$time < $min_time" | bc -l) )); then
             min_time=$time; fastest=$m
         fi
     done
     [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
-    
-    # Guardar en caché
-    cache_mirror "fastest_${os}" "$fastest"
-    
     echo "$fastest"
 }
 
@@ -277,16 +188,6 @@ find_mirror_by_country() {
 
 find_fastest_mirror_parallel() {
     local os=$1
-    
-    # Intentar usar caché primero (con válida de día)
-    local cache_day=$(date +%d)
-    local cached=$(get_cached_mirror "parallel_${os}_${cache_day}")
-    if [[ -n "$cached" ]]; then
-        log "Usando mirror en caché (hoy): $cached"
-        echo "$cached"
-        return 0
-    fi
-    
     local mirrors=()
     log "Iniciando testeo de red paralelo para encontrar el mejor mirror..."
     
@@ -298,17 +199,11 @@ find_fastest_mirror_parallel() {
     fi
     
     [[ ${#mirrors[@]} -eq 0 ]] && mirrors=($([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/"))
-    
-    # Limitar a los primeros 10 mirrors para evitar testees muy largos
-    local limited_mirrors=()
-    for ((i=0; i<${#mirrors[@]} && i<10; i++)); do
-        limited_mirrors+=("${mirrors[$i]}")
-    done
-    
+
     local tmp_results=$(mktemp)
     
     # Lanzar pruebas en paralelo
-    for m in "${limited_mirrors[@]}"; do
+    for m in "${mirrors[@]}"; do
         (
             [[ "${m: -1}" != "/" ]] && m="${m}/"
             local time=$(curl -o /dev/null -s -I -w '%{time_total}' --connect-timeout 2 --max-time 3 "$m" | tr ',' '.' || echo 999)
@@ -322,10 +217,6 @@ find_fastest_mirror_parallel() {
     rm -f "$tmp_results"
     
     [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
-    
-    # Guardar en caché
-    cache_mirror "parallel_${os}_${cache_day}" "$fastest"
-    
     log "Mirror más rápido detectado: $fastest"
     echo "$fastest"
 }
@@ -441,9 +332,23 @@ fi
 check_dependencies
 
 if [[ -z "$OS" ]]; then
-    echo "Sistema: 1) Ubuntu 2) Debian"
+    echo "Sistema: 1) Ubuntu 2) Debian 3) Kali Linux"
     read -p "Opción [1]: " os_opt
-    case $os_opt in 2) OS="debian" ;; *) OS="ubuntu" ;; esac
+    case $os_opt in 
+        2) OS="debian" ;;
+        3) OS="kali" ; OS_CODENAME="kali-rolling" ;;
+        1) read -p "Ubuntu versión (codename, ej: focal, jammy, noble) o 'soporte' para la actual: " ubuntu_ver
+           if [[ "$ubuntu_ver" == "soporte" ]]; then
+               OS="ubuntu" ; OS_CODENAME="noble"
+           else
+               OS="ubuntu" ; OS_CODENAME="$ubuntu_ver"
+               # Verificar si la versión tiene soporte oficial
+               if ! curl -s "https://changelogs.ubuntu.com/meta-release" | grep -q "$ubuntu_ver" 2>/dev/null; then
+                   log "ADVERTENCIA: $ubuntu_ver puede que no tenga soporte oficial." "WARNING"
+               fi
+           fi
+        ;;
+    esac
 fi
 
 read -p "RAM (MB) [$VM_RAM]: " input_ram; [[ -n "$input_ram" ]] && VM_RAM="$input_ram"
@@ -499,14 +404,13 @@ read -p "¿Repositorio extrepo? (ej: vscode,signal) [ninguno]: " EXTREPOS
 if [[ -z "$DESKTOP" ]]; then
     if [[ "$OS" == "ubuntu" ]]; then
         while true; do
-            echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Kylin 10) MATE 11) KDE(studio) 12) Unity 13) Ninguno"
-            read -p "Selecciona escritorio [13]: " desk_opt
+            echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Kylin 10) MATE 11) Skolelinux 12) Kali GNOME 13) Kali KDE 15) Kali XFCE 16) Kali LXQt 17) Kali MATE 17) edubuntu 17) ubuntustudio 17) Ninguno"
+            read -p "Selecciona escritorio [17]: " desk_opt
             case $desk_opt in
                 1) DESKTOP="gnome"; break ;;
                 2) DESKTOP="kde"; break ;;
                 3) DESKTOP="xfce"; break ;;
                 4) DESKTOP="lxde"; break ;;
-                5) DESKTOP="lxqt"; break ;;
                 6) DESKTOP="budgie"; break ;;
                 7) DESKTOP="edubuntu"; break ;;
                 8) DESKTOP="cinnamon"; break ;;
@@ -522,28 +426,69 @@ if [[ -z "$DESKTOP" ]]; then
                         continue
                     fi
                     ;;
-                11) DESKTOP="ubuntustudio"; break ;;
-                12)
-                    echo "AVISO, debido a la situacion personal del equipo desarrollador del sabor unity de ubuntu (los que dirigen el proyecto aun estan haciendo los estudios universitarios), esta distro han sacado la 26.04 con una salvedad, NO ES LTS, con lo cual el kernel de este sabor o edicion es posible que se quede fija en la version 7 y reciba actualizaciones de programas pero no del nucleo del sistema (el kernel), mientras reciba actualizaciones de programas es utilizable, pero que sepas que las maquinas virtuales (y la maquina fisica que instales) no recibira actualizaciones de kernel ni de funciones ni de seguridad, si decides continuar creando la maquina, ten en cuenta eso. estos estan en una situacion menos complicada que la de ubuntu mate (o sea, que pueden sobrevivir), pero es posible que por un casual (version continua o LTS), este sabor se quite de la oferta de canonical y posteriormente sea retirado del script, si aceptas crear la maquina dale a S, si no, dale a N para volver a la seleccion de escritorios"
-                    read -n 1 -p "Opción: " confirm_unity; echo ""
-                    if [[ "$confirm_unity" == "s" || "$confirm_unity" == "S" ]]; then
-                        DESKTOP="unity"
+                10) 
+                    echo "AVISO: esta distro solo esta hasta 25.10 continuo y esta en proceso de reestructuracion del equipo directivo del sabor de ubuntu, con lo cual es posible que pueda eliminarse esta opcion en un futuro si canonical decide quitar este sabor (edicion) de su oferta, ¿estas seguro que quieres continuar? (S/N)"
+                    read -n 1 -p "Opción: " confirm_mate; echo ""
+                    if [[ "$confirm_mate" == "s" || "$confirm_mate" == "S" ]]; then
+                        DESKTOP="mate"
                         break
                     else
                         echo "Regresando a la selección de escritorios..."
                         continue
                     fi
                     ;;
-                *) DESKTOP="none"; break ;;
+                11) if [[ -n "$SKOLA" ]]; then
+                        DESKTOP="skolelinux"
+                    else
+                        DESKTOP="ubuntustudio"
+                    fi
+                    break ;;
+                12) if [[ "$OS" == "kali" ]]; then
+                        DESKTOP="kali-gnome"
+                    else
+                        DESKTOP="ubuntustudio"
+                    fi
+                    break ;;
+                15) if [[ "$OS" == "kali" ]]; then
+                        DESKTOP="kali-xfce"
+                    else
+                        DESKTOP="ubuntustudio"
+                    fi
+                    break ;;
+                16) if [[ "$OS" == "kali" ]]; then
+                        DESKTOP="kali-mate"
+                    else
+                        DESKTOP="ubuntustudio"
+                    fi
+                    break ;;
+                17) DESKTOP="none"; break ;
             esac
         done
-    else
-        echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Ninguno"
-        read -p "Selecciona escritorio [7]: " desk_opt
-        case $desk_opt in
-            1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; *) DESKTOP="none" ;;
-        esac
-    fi
+            if [[ "$OS" == "debian" ]]; then
+                echo "Escritorio Debian: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Skolelinux 8) Ninguno"
+                read -p "Selecciona escritorio [8]: " desk_opt
+                case $desk_opt in
+                    1) DESKTOP="gnome"; break ;;
+                    2) DESKTOP="kde"; break ;;
+                    3) DESKTOP="xfce"; break ;;
+                    4) DESKTOP="lxde"; break ;;
+                    5) DESKTOP="lxqt"; break ;;
+                    6) DESKTOP="budgie"; break ;;
+                    7) if [[ -n "$SKOLA" ]]; then
+                            DESKTOP="skolelinux"
+                        else
+                            DESKTOP="xfce"
+                        fi
+                        break ;;
+                    8) DESKTOP="none"; break ;;
+                esac
+            else
+                echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Ninguno"
+                read -p "Selecciona escritorio [7]: " desk_opt
+                case $desk_opt in
+                    1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; 7) DESKTOP="none" ;;
+                esac
+            fi
 fi
 
 echo "Compresión: 1) zip 2) rar 3) 7z 4) Ninguna"
@@ -573,46 +518,11 @@ if [[ -n "$WALLHAVEN_QUERY" ]]; then
         log "Buscando: $q..."
         QUERY_ENC=$(echo -n "$q" | jq -sRr @uri)
         API_URL="https://wallhaven.cc/api/v1/search?q=${QUERY_ENC}&sorting=random&atleast=1920x1080&per_page=10"
-        
-        # Intentar hasta 3 veces con delay entre reintentos
-        local retry=0
-        local success=0
-        while [[ $retry -lt 3 && $success -eq 0 ]]; do
-            WP_URLS=$(curl -s "$API_URL" 2>/dev/null || echo "")
-            if [[ -z "$WP_URLS" || "$WP_URLS" == "null" ]]; then
-                ((retry++))
-                log "Intento $retry fallido para $q, reintentando en 2s..." "WARNING"
-                sleep 2
-                continue
-            fi
-            success=1
-            
-            # Parsear URLs y filtrar solo extensiones de imagen
-            local count=0
-            echo "$WP_URLS" | jq -r '.data[].path' | while read -r u; do
-                # Filtrar por extensiones de imagen conocidas
-                case "$u" in
-                    *.jpg|*.jpeg|*.png|*.gif|*.webp)
-                        log "Bajando fondo $global_count..."
-                        # Descargar con reintentos
-                        local wp_retry=0
-                        local wp_success=0
-                        while [[ $wp_retry -lt 3 && $wp_success -eq 0 ]]; do
-                            if curl -s -L -o "$CONFIG_DIR/$NAME/wallpapers/wp_$global_count.jpg" "$u" 2>/dev/null; then
-                                wp_success=1
-                            else
-                                ((wp_retry++))
-                                sleep 1
-                            fi
-                        done
-                        if [[ $wp_success -eq 1 ]]; then
-                            ((global_count++))
-                        fi
-                        ((count++))
-                        ;;
-                esac
-                [[ $count -ge 10 ]] && break
-            done
+        WP_URLS=$(curl -s "$API_URL" | jq -r '.data[].path' | head -n 10)
+        for u in $WP_URLS; do
+            log "Bajando fondo $global_count..."
+            curl -s -L -o "$CONFIG_DIR/$NAME/wallpapers/wp_$global_count.jpg" "$u"
+            ((global_count++))
         done
     done
 fi
@@ -815,20 +725,21 @@ if [[ -n "$OPT_FLATPAK" ]]; then
     # Flatpak requiere bubblewrap para el sandboxing
     apt-get install -y flatpak bubblewrap
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
-    for p in ${OPT_FLATPAK//,/ }; do
-        echo "Instalando flatpak: $p"
-        # Si el nombre parece un ID completo (necesita al menos 2 puntos separados), instalar directamente
-        if echo "$p" | grep -qE '^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$'; then
-            flatpak install -y flathub "$p" || echo "Error al instalar flatpak $p"
+    for p in ${OPT_FLATPAK//,/ }; do 
+        echo "Instalando flatpak: \$p"
+        # Si el nombre no parece un ID completo (necesita al menos 2 puntos), intentamos buscarlo
+        if [[ "\$p" == *.*.* ]]; then
+            flatpak install -y flathub "\$p" || echo "Error al instalar flatpak \$p"
         else
-            # Buscar ID por nombre (usar columnas específicas para evitar capturar descripciones)
-            ID=$(flatpak search --columns=application "$p" 2>/dev/null | head -n 1 | xargs)
-            if [[ -n "$ID" && "$ID" != "Application ID" ]]; then
-                echo "ID encontrado: $ID. Instalando..."
-                flatpak install -y flathub "$ID" || echo "Error al instalar flatpak $ID"
+            echo "Buscando ID para \$p..."
+            # Usar columnas específicas para evitar capturar descripciones como IDs
+            ID=\$(flatpak search --columns=application "\$p" | head -n 1 | xargs)
+            if [[ -n "\$ID" && "\$ID" != "Application ID" ]]; then
+                echo "ID encontrado: \$ID. Instalando..."
+                flatpak install -y flathub "\$ID" || echo "Error al instalar flatpak \$ID"
             else
-                echo "No se encontró un ID unívoco para $p, intentando instalación directa..."
-                flatpak install -y flathub "$p" || echo "Error al instalar flatpak $p (puede requerir sesión de usuario)"
+                echo "No se encontró un ID unívoco para \$p, intentando instalación directa..."
+                flatpak install -y flathub "\$p" || echo "Error al instalar flatpak \$p (puede requerir sesión de usuario)"
             fi
         fi
     done
@@ -978,7 +889,6 @@ else
 fi
 
 # Opción 1: Añadir módulos críticos y recheck para evitar errores de carga
-# Nota: \$1 se expandirá correctamente al ejecutarse dentro de chroot con el dispositivo como argumento
 grub-install --target=i386-pc --force --recheck --modules="part_msdos ext2 biosdisk" "\$1"
 update-grub
 
