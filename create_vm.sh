@@ -10,6 +10,10 @@ set -o pipefail
 FECHA_HOY=$(date +%d-%m-%Y)
 LOG_FILE="informe_imp_maqvirt(${FECHA_HOY}).log"
 
+# Directorio de caché para mirrors
+CACHE_DIR="${HOME}/.cache/acme-vm"
+mkdir -p "$CACHE_DIR"
+
 # Asegurar que el log sea un archivo nuevo en cada ejecución (si ya existe el del día, podemos rotarlo o añadir timestamp)
 # Para cumplir estrictamente con "cree un nuevo archivo log", si ya existe uno del mismo día, le añadiremos un sufijo de tiempo para no sobrescribir sesiones previas
 if [[ -f "$LOG_FILE" ]]; then
@@ -25,6 +29,25 @@ log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     # Ya no necesitamos tee aquí porque exec ya se encarga de la redirección global
     echo "[$timestamp] [$level] $message" >&2
+}
+
+# Función para obtener mirror caché si existe
+get_cached_mirror() {
+    local os_key="$1"
+    local cache_file="$CACHE_DIR/mirror_${os_key}_${FECHA_HOY}.txt"
+    if [[ -f "$cache_file" ]]; then
+        cat "$cache_file"
+        return 0
+    fi
+    return 1
+}
+
+# Función para guardar mirror en caché
+cache_mirror() {
+    local os_key="$1"
+    local mirror_url="$2"
+    local cache_file="$CACHE_DIR/mirror_${os_key}_${FECHA_HOY}.txt"
+    echo "$mirror_url" > "$cache_file"
 }
 
 # --- Cleanup Trap ---
@@ -118,22 +141,75 @@ OS_CODENAME=""
 VERBOSE_MODE="n"
 
 # --- Argument Parsing ---
+validate_hypervisor() {
+    local valid_hypervisors="vbox vmware qemu raw rootfs vagrant hyperv"
+    if echo " $valid_hypervisors " | grep -q " $1 "; then
+        return 0
+    return 1
+}
+
+validate_os() {
+    local valid_os="ubuntu debian"
+    if echo " $valid_os " | grep -q " $1 "; then
+        return 0
+    return 1
+}
+
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --help) show_help ;;
         --name) NAME="$2"; shift ;;
-        --os) OS="$2"; shift ;;
-        --hyp) HYPERVISOR="$2"; shift ;;
-        --ram) VM_RAM="$2"; shift ;;
-        --disk) VM_DISK_SIZE="$2"; shift ;;
-        --cpucores) VM_CPUS="$2"; shift ;;
+        --os)
+            if validate_os "$2"; then
+                OS="$2"
+            else
+                log "Sistema operativo inválido: $2. Use 'ubuntu' o 'debian'." "ERROR"
+                show_help; exit 1
+            fi
+            shift ;;
+        --hyp)
+            if validate_hypervisor "$2"; then
+                HYPERVISOR="$2"
+            else
+                log "Hipervisor inválido: $2. Opciones: vbox, vmware, qemu, raw, rootfs, vagrant, hyperv" "ERROR"
+                show_help; exit 1
+            fi
+            shift ;;
+        --ram)
+            # Validar que sea un número entero positivo
+            if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -gt 0 ]; then
+                VM_RAM="$2"
+            else
+                log "RAM inválida: $2. Debe ser un número entero positivo." "ERROR"
+                exit 1
+            fi
+            shift ;;
+        --disk)
+            VM_DISK_SIZE="$2"
+            # Normalizar: quitar espacios y cambiar coma por punto decimal
+            VM_DISK_SIZE=${VM_DISK_SIZE// /}
+            VM_DISK_SIZE=${VM_DISK_SIZE//,/.}
+            # Validación de tamaño de disco
+            if [[ "$VM_DISK_SIZE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+                log "No se detectó unidad en el tamaño del disco, asumiendo Gigabytes (G)." "WARNING"
+                VM_DISK_SIZE="${VM_DISK_SIZE}G"
+            fi
+            shift ;;
+        --cpucores)
+            if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -gt 0 ]; then
+                VM_CPUS="$2"
+            else
+                log "Núcleos de CPU inválidos: $2. Debe ser un número entero positivo." "ERROR"
+                exit 1
+            fi
+            shift ;;
         --user) VM_USER="$2"; shift ;;
         --pass) VM_PASS="$2"; shift ;;
         --flatpak) OPT_FLATPAK="$2"; shift ;;
         --desktop) DESKTOP="$2"; shift ;;
         --mirror) SELECTED_MIRROR="$2"; shift ;;
         --verbose) VERBOSE_MODE="s" ;;
-        *) echo "Opción desconocida: $1"; show_help ;;
+        *) echo "Opción desconocida: $1"; show_help ; exit 1 ;;
     esac
     shift
 done
@@ -141,6 +217,15 @@ done
 # --- Mirror Selection Logic ---
 find_fastest_mirror() {
     local os=$1
+    
+    # Intentar usar caché primero
+    local cached=$(get_cached_mirror "fastest_${os}")
+    if [[ -n "$cached" ]]; then
+        log "Usando mirror en caché: $cached"
+        echo "$cached"
+        return 0
+    fi
+    
     local mirrors=()
     log "Analizando mirrors para encontrar el más rápido..."
     if [[ "$os" == "ubuntu" ]]; then
@@ -159,11 +244,15 @@ find_fastest_mirror() {
         # Validar que time sea un número antes de pasarlo a bc
         if [[ ! "$time" =~ ^[0-9.]+$ ]]; then time=999; fi
         
-        if (( $(echo "$time < $min_time" | bc -l) )); then
+        if (( $(echo "$time < $min_time" | bc -l) 2>/dev/null)); then
             min_time=$time; fastest=$m
         fi
     done
     [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
+    
+    # Guardar en caché
+    cache_mirror "fastest_${os}" "$fastest"
+    
     echo "$fastest"
 }
 
@@ -188,6 +277,16 @@ find_mirror_by_country() {
 
 find_fastest_mirror_parallel() {
     local os=$1
+    
+    # Intentar usar caché primero (con válida de día)
+    local cache_day=$(date +%d)
+    local cached=$(get_cached_mirror "parallel_${os}_${cache_day}")
+    if [[ -n "$cached" ]]; then
+        log "Usando mirror en caché (hoy): $cached"
+        echo "$cached"
+        return 0
+    fi
+    
     local mirrors=()
     log "Iniciando testeo de red paralelo para encontrar el mejor mirror..."
     
@@ -199,11 +298,17 @@ find_fastest_mirror_parallel() {
     fi
     
     [[ ${#mirrors[@]} -eq 0 ]] && mirrors=($([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/"))
-
+    
+    # Limitar a los primeros 10 mirrors para evitar testees muy largos
+    local limited_mirrors=()
+    for ((i=0; i<${#mirrors[@]} && i<10; i++)); do
+        limited_mirrors+=("${mirrors[$i]}")
+    done
+    
     local tmp_results=$(mktemp)
     
     # Lanzar pruebas en paralelo
-    for m in "${mirrors[@]}"; do
+    for m in "${limited_mirrors[@]}"; do
         (
             [[ "${m: -1}" != "/" ]] && m="${m}/"
             local time=$(curl -o /dev/null -s -I -w '%{time_total}' --connect-timeout 2 --max-time 3 "$m" | tr ',' '.' || echo 999)
@@ -217,6 +322,10 @@ find_fastest_mirror_parallel() {
     rm -f "$tmp_results"
     
     [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
+    
+    # Guardar en caché
+    cache_mirror "parallel_${os}_${cache_day}" "$fastest"
+    
     log "Mirror más rápido detectado: $fastest"
     echo "$fastest"
 }
@@ -464,11 +573,46 @@ if [[ -n "$WALLHAVEN_QUERY" ]]; then
         log "Buscando: $q..."
         QUERY_ENC=$(echo -n "$q" | jq -sRr @uri)
         API_URL="https://wallhaven.cc/api/v1/search?q=${QUERY_ENC}&sorting=random&atleast=1920x1080&per_page=10"
-        WP_URLS=$(curl -s "$API_URL" | jq -r '.data[].path' | head -n 10)
-        for u in $WP_URLS; do
-            log "Bajando fondo $global_count..."
-            curl -s -L -o "$CONFIG_DIR/$NAME/wallpapers/wp_$global_count.jpg" "$u"
-            ((global_count++))
+        
+        # Intentar hasta 3 veces con delay entre reintentos
+        local retry=0
+        local success=0
+        while [[ $retry -lt 3 && $success -eq 0 ]]; do
+            WP_URLS=$(curl -s "$API_URL" 2>/dev/null || echo "")
+            if [[ -z "$WP_URLS" || "$WP_URLS" == "null" ]]; then
+                ((retry++))
+                log "Intento $retry fallido para $q, reintentando en 2s..." "WARNING"
+                sleep 2
+                continue
+            fi
+            success=1
+            
+            # Parsear URLs y filtrar solo extensiones de imagen
+            local count=0
+            echo "$WP_URLS" | jq -r '.data[].path' | while read -r u; do
+                # Filtrar por extensiones de imagen conocidas
+                case "$u" in
+                    *.jpg|*.jpeg|*.png|*.gif|*.webp)
+                        log "Bajando fondo $global_count..."
+                        # Descargar con reintentos
+                        local wp_retry=0
+                        local wp_success=0
+                        while [[ $wp_retry -lt 3 && $wp_success -eq 0 ]]; do
+                            if curl -s -L -o "$CONFIG_DIR/$NAME/wallpapers/wp_$global_count.jpg" "$u" 2>/dev/null; then
+                                wp_success=1
+                            else
+                                ((wp_retry++))
+                                sleep 1
+                            fi
+                        done
+                        if [[ $wp_success -eq 1 ]]; then
+                            ((global_count++))
+                        fi
+                        ((count++))
+                        ;;
+                esac
+                [[ $count -ge 10 ]] && break
+            done
         done
     done
 fi
@@ -671,21 +815,20 @@ if [[ -n "$OPT_FLATPAK" ]]; then
     # Flatpak requiere bubblewrap para el sandboxing
     apt-get install -y flatpak bubblewrap
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
-    for p in ${OPT_FLATPAK//,/ }; do 
-        echo "Instalando flatpak: \$p"
-        # Si el nombre no parece un ID completo (necesita al menos 2 puntos), intentamos buscarlo
-        if [[ "\$p" == *.*.* ]]; then
-            flatpak install -y flathub "\$p" || echo "Error al instalar flatpak \$p"
+    for p in ${OPT_FLATPAK//,/ }; do
+        echo "Instalando flatpak: $p"
+        # Si el nombre parece un ID completo (necesita al menos 2 puntos separados), instalar directamente
+        if echo "$p" | grep -qE '^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$'; then
+            flatpak install -y flathub "$p" || echo "Error al instalar flatpak $p"
         else
-            echo "Buscando ID para \$p..."
-            # Usar columnas específicas para evitar capturar descripciones como IDs
-            ID=\$(flatpak search --columns=application "\$p" | head -n 1 | xargs)
-            if [[ -n "\$ID" && "\$ID" != "Application ID" ]]; then
-                echo "ID encontrado: \$ID. Instalando..."
-                flatpak install -y flathub "\$ID" || echo "Error al instalar flatpak \$ID"
+            # Buscar ID por nombre (usar columnas específicas para evitar capturar descripciones)
+            ID=$(flatpak search --columns=application "$p" 2>/dev/null | head -n 1 | xargs)
+            if [[ -n "$ID" && "$ID" != "Application ID" ]]; then
+                echo "ID encontrado: $ID. Instalando..."
+                flatpak install -y flathub "$ID" || echo "Error al instalar flatpak $ID"
             else
-                echo "No se encontró un ID unívoco para \$p, intentando instalación directa..."
-                flatpak install -y flathub "\$p" || echo "Error al instalar flatpak \$p (puede requerir sesión de usuario)"
+                echo "No se encontró un ID unívoco para $p, intentando instalación directa..."
+                flatpak install -y flathub "$p" || echo "Error al instalar flatpak $p (puede requerir sesión de usuario)"
             fi
         fi
     done
@@ -835,6 +978,7 @@ else
 fi
 
 # Opción 1: Añadir módulos críticos y recheck para evitar errores de carga
+# Nota: \$1 se expandirá correctamente al ejecutarse dentro de chroot con el dispositivo como argumento
 grub-install --target=i386-pc --force --recheck --modules="part_msdos ext2 biosdisk" "\$1"
 update-grub
 

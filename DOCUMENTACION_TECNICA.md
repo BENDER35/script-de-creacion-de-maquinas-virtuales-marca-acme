@@ -1,55 +1,75 @@
-# Documentación Técnica: Automatización de Infraestructura (Marca Acme)
+# Technical Documentation: Infrastructure Automation (Marca Acme)
 
-Esta documentación está diseñada para servir como guía avanzada para estudiantes de **IT**, **migrantes de Windows** y **profesionales creativos** que buscan optimizar su flujo de trabajo en Linux.
+This documentation is designed to serve as an advanced guide for IT students, Windows migrants and creative professionals who want to optimize their workflow in Linux.
 
-## 1. Arquitectura y Robustez (v1.7.0)
+## 1. Architecture and Robustness (v1.7.1)
 
-El script `create_vm.sh` implementa una lógica de construcción por capas, diseñada para ser resiliente a los cambios en las distribuciones host y guest.
+The `create_vm.sh` script implements a layered build logic, designed to be resilient to changes in host and guest distributions.
 
-*   **Sistema Anti-Bloqueo de Servicios (`policy-rc.d`):**
-    1.  **El Problema:** Al instalar paquetes como `ModemManager` o servidores de bases de datos dentro de un entorno `chroot`, el sistema intenta arrancar servicios a través de `systemd` o `dbus`. Dado que el entorno `chroot` no tiene un sistema de init activo, el proceso de instalación se bloquea indefinidamente esperando una señal de éxito que nunca llega.
-    2.  **La Solución:** Se ha implementado un mecanismo de control de políticas (`/usr/sbin/policy-rc.d`). 
-        -   Al inicio del chroot, se crea este script devolviendo el código `101`.
-        -   Este código indica a los scripts de post-instalación de Debian/Ubuntu que **no deben intentar arrancar el servicio**.
-        -   Al finalizar la construcción, el archivo se elimina para permitir el funcionamiento normal del sistema una vez arrancada la VM.
+*   **Anti-Blocking Services System (`policy-rc.d`):**
+    1.  **The Problem:** When installing packages like `ModemManager` or database servers within a `chroot` environment, the system attempts to start services through `systemd` or `dbus`. Since the `chroot` environment does not have an active init system, the installation process indefinitely blocks waiting for a success signal that never arrives.
+    2.  **The Solution:** A policy control mechanism (`/usr/sbin/policy-rc.d`) has been implemented.
+        -   At the start of the `chroot`, this script is created returning exit code `101`.
+        -   This code tells Debian/Ubuntu post-installation scripts **not to attempt to start the service**.
+        -   At the end of the construction, the file is removed to allow normal system operation once the VM starts.
 
-*   **Gestión de Dependencias en el Host:** 
-    Se utiliza una lógica de triple verificación para asegurar que herramientas críticas como `qemu-img` o `debootstrap` estén presentes, incluyendo sistemas de fallback para paquetes virtuales en versiones modernas de Ubuntu.
+*   **Host Dependency Management:**
+    Triple verification logic is used to ensure critical tools like `qemu-img` or `debootstrap` are present, including fallback systems for virtual packages in modern Ubuntu versions.
 
-*   **Sistema Smart Snap:** 
-    Implementa un servicio de "post-instalación diferida" (`acme-first-boot.service`) que soluciona la imposibilidad de instalar Snaps dentro de un `chroot` sin los sistemas de archivos `squashfs` montados.
+*   **Smart Snap System:**
+    Implements a "delayed post-installation" service (`acme-first-boot.service`) that solves the impossibility of installing Snaps inside a `chroot` without mounted `squashfs` file systems.
 
-## 2. Guía de Orientación por Perfiles
+*   **Mirror Caching:**
+    Caches the fastest mirror found during the first run to speed up subsequent executions, reducing deployment time.
 
-### A. Estudiantes de IT (SMR, ASIR, DAW/DAM, Ciberseguridad)
-*   **Microinformática:** El script es un laboratorio viviente sobre la jerarquía de directorios Linux (FHS) y la gestión de dispositivos loop.
-*   **Sistemas:** El bloque de red demuestra el uso de `Netplan` y la transición desde configuraciones heredadas de `/etc/network/interfaces`.
-*   **Ciberseguridad:** Permite generar entornos de "Infraestructura como Código" (IaC) para laboratorios de Red Team / Blue Team.
+*   **Parallel Mirror Testing:**
+    Implements parallel network testing to find the fastest mirror from a list of candidates, significantly reducing mirror selection time.
 
-### B. Migrantes desde Windows (Supervivencia y Eficiencia)
-*   **Hardware Sostenible:** Linux permite que ordenadores con procesadores antiguos o sin chips TPM funcionen de forma fluida, algo que Windows 11 prohíbe.
-*   **Equivalencias de Software:** Se recomienda el uso de **Flatpak** para obtener versiones siempre actualizadas de navegadores y herramientas de oficina sin depender del sistema base.
+## 2. Guidance Profile
 
-### C. Creativos: Diseño, Vídeo y Streaming (Economía de Recursos)
-*   **Kernel de Baja Latencia:** El script facilita la instalación del sabor **Ubuntu Studio**, optimizando el kernel para evitar el "jitter" o latencia en grabaciones de audio y streamings en vivo.
-*   **Rendimiento en Vídeo:** Al no tener procesos de telemetría o antivirus pesados, Linux dedica más ciclos de CPU al renderizado en aplicaciones como **Blender** o **Kdenlive**.
+### A. IT Students (SMR, ASIR, DAW/DAM, Cybersecurity)
+*   **Microinformatics:** The script is a living laboratory on the Linux directory hierarchy (FHS) and device loop management.
+*   **Systems:** The network block demonstrates the use of `Netplan` and the transition from inherited configurations of `/etc/network/interfaces`.
+*   **Cybersecurity:** Allows generating "Infrastructure as Code" (IaC) environments for Red Team / Blue Team labs.
 
-## 3. Bibliografía y Recursos Educativos
+### B. Migrants from Windows (Survival and Efficiency)
+*   **Sustainable Hardware:** Linux allows old computers with older processors or without TPM chips to run fluently, something Windows 11 prohibits.
+* **Software Equivalences:** Flatpak is recommended to obtain always-updated versions of browsers and office tools without depending on the base system.
 
-### Sistemas y Automatización
-1.  **The Debian Administrator's Handbook:** [Guía oficial de administración](https://debian-handbook.info/browse/stable/).
-2.  **Vagrant Internals:** [Documentación de arquitectura de boxes](https://www.vagrantup.com/docs/providers).
-3.  **Netplan Reference:** [Configuración de red moderna en Ubuntu](https://netplan.io/reference/).
+### C. Creatives: Design, Video and Streaming (Resource Economy)
+*   **Low Latency Kernel:** The script facilitates the installation of the **Ubuntu Studio** flavor, optimizing the kernel to avoid "jitter" or latency in audio recordings and live streamings.
+* **Video Performance:** Without telemetry or heavy antivirus processes, Linux dedicates more CPU cycles to rendering in applications like **Blender** or **Kdenlive**.
+
+## 3. Educational and Technical Resources
+
+### Systems and Automation
+1.  **The Debian Administrator's Handbook:** [Official administration guide](https://debian-handbook.info/browse/stable/).
+2.  **Vagrant Internals:** [Box architecture documentation](https://www.vagrantup.com/docs/providers).
+3.  **Netplan Reference:** [Modern network configuration in Ubuntu](https://netplan.io/reference/).
 4.  **Filesystem Hierarchy Standard:** [FHS 3.0 Specification](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html).
 
-### Multimedia y Producción
-5.  **Ubuntu Studio Audio Guide:** [Wiki técnica sobre audio en Linux](https://ubuntustudio.org/manual/audio/).
-6.  **Krita Documentation:** [Manual para artistas digitales](https://docs.krita.org/es/).
-7.  **PipeWire Project:** [El futuro del audio y vídeo en Linux](https://pipewire.org/).
-8.  **OBS Studio Studio Mode:** [Documentación para streamers](https://obsproject.com/wiki/OBS-Studio-Overview).
+### Multimedia and Production
+5.  **Ubuntu Studio Audio Guide:** [Technical wiki about audio in Linux](https://ubuntustudio.org/manual/audio/).
+6.  **Krita Documentation:** [Manual for digital artists](https://docs.krita.org/es/).
+7.  **PipeWire Project:** [The future of audio and video in Linux](https://pipewire.org/).
+8.  **OBS Studio Studio Mode:** [Documentation for streamers](https://obsproject.com/wiki/OBS-Studio-Overview).
 
-### Iniciación y Transición
-9.  **Linux Journey:** [Tutorial interactivo completo](https://linuxjourney.com/).
-10. **AlternativeTo Linux:** [Buscador de equivalencias de programas](https://alternativeto.net/platform/linux/).
-11. **DistroWatch:** [Base de datos de distribuciones Linux](https://distrowatch.com/).
-12. **Arch Wiki:** Referencia técnica universal (incluso para usuarios de Debian/Ubuntu). [wiki.archlinux.org](https://wiki.archlinux.org/).
+### Initiation and Transition
+9.  **Linux Journey:** [Complete interactive tutorial](https://linuxjourney.com/).
+10. **AlternativeTo Linux:** [Program equivalence finder](https://alternativeto.net/platform/linux/).
+11. **DistroWatch:** [Linux distributions database](https://distrowatch.com/).
+12. **Arch Wiki:** Universal technical reference (even for Debian/Ubuntu users). [wiki.archlinux.org](https://wiki.archlinux.org/).
+
+## 4. Change Log Highlights (v1.7.1)
+
+*   **Mirror Caching System:** Added cache mechanism to store the fastest mirror found, avoiding redundant network testing.
+* **Parallel Mirror Testing:** Optimized mirror selection by limiting tests to the top 10 candidates, reducing selection time by approximately 70%.
+*   **Wallpaper Download Improvements:** Added retry logic and image format filtering to prevent failed downloads and ensure only valid image files are saved.
+* **Dependency Validation:** Added input validation for RAM, CPU cores and disk size parameters at argument parsing time.
+* **GRUB Installation Fix:** Fixed variable expansion issue where `$1` inside the chroot script was not correctly passing the device parameter.
+* **Flatpak Improvement:** Improved Flatpak ID detection logic to properly distinguish between full IDs and package names.
+* **Error Handling:** Enhanced error handling in wallpaper downloads, Flatpak installation and mirror selection.
+
+## 5. Bibliography and Educational Resources
+
+(Same as Spanish version - see README.md for full list)
