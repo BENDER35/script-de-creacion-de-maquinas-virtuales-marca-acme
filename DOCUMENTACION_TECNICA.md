@@ -1,83 +1,97 @@
-# Technical Documentation: Infrastructure Automation (Marca Acme)
+# Documentación Técnica: Automatización de Infraestructura (Marca Acme)
 
-This documentation is designed to serve as an advanced guide for IT students, Windows migrants and creative professionals who want to optimize their workflow in Linux.
+Esta documentación está pensada como guía avanzada para estudiantes de informática, migrantes de Windows y profesionales creativos que quieran optimizar su flujo de trabajo en Linux.
 
-## 1. Architecture and Robustness (v1.7.1)
+## 1. Arquitectura y Robustez (v1.7.3)
 
-The `create_vm.sh` script implements a layered build logic, designed to be resilient to changes in host and guest distributions.
+El script `create_vm.sh` implementa una lógica de construcción por capas, diseñada para resistir cambios en las distribuciones anfitrionas e invitadas.
 
-*   **Anti-Blocking Services System (`policy-rc.d`):**
-    1.  **The Problem:** When installing packages like `ModemManager` or database servers within a `chroot` environment, the system attempts to start services through `systemd` or `dbus`. Since the `chroot` environment does not have an active init system, the installation process indefinitely blocks waiting for a success signal that never arrives.
-    2.  **The Solution:** A policy control mechanism (`/usr/sbin/policy-rc.d`) has been implemented.
-        -   At the start of the `chroot`, this script is created returning exit code `101`.
-        -   This code tells Debian/Ubuntu post-installation scripts **not to attempt to start the service**.
-        -   At the end of the construction, the file is removed to allow normal system operation once the VM starts.
-    *   **Color-Coded Logging:** The script implements color-coded output for better visual feedback during execution (Red for errors, Yellow for warnings, Green for info, Cyan for debug messages).
+*   **Sistema Anti-Bloqueo de Servicios (`policy-rc.d`):**
+    1.  **El problema:** Al instalar paquetes como `ModemManager` o servidores de bases de datos dentro de un entorno `chroot`, el sistema intenta arrancar servicios mediante `systemd` o `dbus`. Como el `chroot` no tiene un sistema de inicio activo, el proceso de instalación se queda bloqueado indefinidamente esperando una señal de éxito que nunca llega.
+    2.  **La solución:** Se ha implementado un mecanismo de control de políticas (`/usr/sbin/policy-rc.d`).
+        -   Al inicio del `chroot`, se crea este script devolviendo el código de salida `101`.
+        -   Ese código indica a los scripts post-instalación de Debian/Ubuntu que **no intenten arrancar el servicio**.
+        -   Al finalizar la construcción, el archivo se elimina para permitir el funcionamiento normal de la VM en su primer arranque.
+    *   **Log con colores:** El script implementa salida con colores para una mejor retroalimentación visual durante la ejecución (Rojo para errores, Amarillo para advertencias, Verde para información, Cyan para depuración).
 
-*   **Host Dependency Management:**
-    Triple verification logic is used to ensure critical tools like `qemu-img` or `debootstrap` are present, including fallback systems for virtual packages in modern Ubuntu versions.
+*   **Gestión de Dependencias del Anfitrión:**
+    Se usa una verificación triple para asegurar que herramientas críticas como `qemu-img` o `debootstrap` estén presentes, incluyendo sistemas de respaldo para paquetes virtuales en versiones modernas de Ubuntu. Los fallos al instalar dependencias del host ya no son fatales: el script avisa y continúa.
 
-*   **Smart Snap System:**
-*   **QEMU Support:** Converts RAW disk images to QCOW2 format for efficient storage and compatibility with KVM/libvirt.
-*   **Vagrant Support:** Creates Vagrant boxes compatible with libvirt driver, including metadata.json and Vagrantfile for easy deployment.
+*   **Soporte QEMU:** Convierte imágenes RAW a formato QCOW2 para un almacenamiento eficiente y compatibilidad con KVM/libvirt.
+*   **Soporte Vagrant:** Crea cajas Vagrant compatibles con el proveedor libvirt, incluyendo metadata.json y Vagrantfile para un despliegue sencillo.
 
-*   **Smart Snap System:**
-    Implements a "delayed post-installation" service (`acme-first-boot.service`) that solves the impossibility of installing Snaps inside a `chroot` without mounted `squashfs` file systems.
+*   **Sistema Snap Inteligente:**
+    Implementa un servicio de "post-instalación diferida" (`acme-first-boot.service`) que resuelve la imposibilidad de instalar Snaps dentro de un `chroot` sin sistemas de archivos `squashfs` montados.
 
-*   **Mirror Caching:**
-    Caches the fastest mirror found during the first run to speed up subsequent executions, reducing deployment time.
+*   **Caché de Mirrors:**
+    Almacena el mirror más rápido encontrado en la primera ejecución para acelerar las siguientes, reduciendo el tiempo de despliegue.
 
-*   **Parallel Mirror Testing:**
-    Implements parallel network testing to find the fastest mirror from a list of candidates, significantly reducing mirror selection time.
-*   **Legacy Ubuntu Support:** The script now allows creating Ubuntu virtual machines even from versions that are no longer officially supported. Users can specify a custom codename, and the script will issue a warning if the version does not have official support.
-*   **Kali Linux Support:** The script now supports creating virtual machines with Kali Linux, the leading penetration testing distribution. Includes support for Kali Rolling (default) and various desktop environments (Kali GNOME, Kali KDE, Kali XFCE, Kali LXQt, Kali MATE).
+*   **Pruebas Paralelas de Mirrors:**
+    Implementa testeo de red en paralelo para encontrar el mirror más rápido de una lista de candidatos, reduciendo notablemente el tiempo de selección. Kali y Parrot usan siempre sus mirrors oficiales.
 
-## 2. Guidance Profile
+*   **Soporte de Ubuntu Legacy:** El script permite crear máquinas virtuales de Ubuntu incluso en versiones que ya no tienen soporte oficial. Se puede especificar un codename personalizado y el script emitirá una advertencia si la versión no tiene soporte oficial.
 
-### A. IT Students (SMR, ASIR, DAW/DAM, Cybersecurity)
-*   **Microinformatics:** The script is a living laboratory on the Linux directory hierarchy (FHS) and device loop management.
-*   **Systems:** The network block demonstrates the use of `Netplan` and the transition from inherited configurations of `/etc/network/interfaces`.
-*   **Cybersecurity:** Allows generating "Infrastructure as Code" (IaC) environments for Red Team / Blue Team labs.
+*   **Selección de versión Debian:** El usuario puede elegir entre la rama estable actual (autodetectada), bookworm, bullseye, buster, testing o sid.
 
-### B. Migrants from Windows (Survival and Efficiency)
-*   **Sustainable Hardware:** Linux allows old computers with older processors or without TPM chips to run fluently, something Windows 11 prohibits.
-*   **Software Equivalences:** Flatpak is recommended to obtain always-updated versions of browsers and office tools without depending on the base system.
-*   **Debian Versions:** The script now supports creating virtual machines with different Debian versions: **12 (bookworm)** (current stable), **11 (bullseye)** (previous stable), and **10 (buster)** (old stable).
+*   **Soporte Kali Linux:** El script puede construir máquinas virtuales con Kali Linux (Rolling), la distribución líder en pruebas de penetración. Soporta tipos de instalación (Default, Large, Everything, Headless, Core y Purple) y entornos de escritorio (XFCE, GNOME, KDE, MATE, LXDE, i3 y Enlightenment).
 
-### C. Creatives: Design, Video and Streaming (Resource Economy)
-*   **Low Latency Kernel:** The script facilitates the installation of the **Ubuntu Studio** flavor, optimizing the kernel to avoid "jitter" or latency in audio recordings and live streamings.
-*   **Video Performance:** Without telemetry or heavy antivirus processes, Linux dedicates more CPU cycles to rendering in applications like **Blender** or **Kdenlive**.
+*   **Soporte Parrot Security (v1.7.3):** El script puede construir máquinas virtuales de la suite de seguridad **Parrot OS**. Soporta las ediciones **Security** (kit ofensivo completo, por defecto), **Home**, **Core** y **Hack The Box**, con los escritorios KDE, MATE, XFCE, GNOME e i3.
 
-## 3. Educational and Technical Resources
+*   **Keyrings oficiales para derivados de Debian:** Para Kali y Parrot se descarga la clave oficial de firma de APT del fabricante (`archive.kali.org` y `deb.parrot.sh`) y se usa en dos puntos:
+    1.  **`debootstrap --keyring`**, para verificar el sistema base durante el bootstrap.
+    2.  **`/etc/apt/trusted.gpg.d`** dentro del invitado, para que `apt update` funcione sin avisos.
+    Como las suites de Parrot y Kali no tienen script propio de `debootstrap`, el script reutiliza el de `sid` (Debian inestable), que es la base sobre la que se construyen.
 
-### Systems and Automation
-1.  **The Debian Administrator's Handbook:** [Official administration guide](https://debian-handbook.info/browse/stable/).
-2.  **Vagrant Internals:** [Box architecture documentation](https://www.vagrantup.com/docs/providers).
-3.  **Netplan Reference:** [Modern network configuration in Ubuntu](https://netplan.io/reference/).
-4.  **Filesystem Hierarchy Standard:** [FHS 3.0 Specification](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html).
+## 2. Perfil de Orientación
 
-### Multimedia and Production
-5.  **Ubuntu Studio Audio Guide:** [Technical wiki about audio in Linux](https://ubuntustudio.org/manual/audio/).
-6.  **Krita Documentation:** [Manual for digital artists](https://docs.krita.org/es/).
-7.  **PipeWire Project:** [The future of audio and video in Linux](https://pipewire.org/).
-8.  **OBS Studio Studio Mode:** [Documentation for streamers](https://obsproject.com/wiki/OBS-Studio-Overview).
+### A. Estudiantes de Informática (SMR, ASIR, DAW/DAM, Ciberseguridad)
+*   **Microinformática:** El script es un laboratorio vivo sobre la jerarquía de directorios de Linux (FHS) y la gestión de dispositivos loop.
+*   **Sistemas:** El bloque de red demuestra el uso de `Netplan` y la transición desde las configuraciones heredadas de `/etc/network/interfaces`.
+*   **Ciberseguridad:** Permite generar entornos de "Infraestructura como Código" (IaC) para laboratorios de Red Team / Blue Team, incluyendo estaciones completas de Kali y Parrot Security.
 
-### Initiation and Transition
-9.  **Linux Journey:** [Complete interactive tutorial](https://linuxjourney.com/).
-10. **AlternativeTo Linux:** [Program equivalence finder](https://alternativeto.net/platform/linux/).
-11. **DistroWatch:** [Linux distributions database](https://distrowatch.com/).
-12. **Arch Wiki:** Universal technical reference (even for Debian/Ubuntu users). [wiki.archlinux.org](https://wiki.archlinux.org/).
+### B. Migrantes de Windows (Supervivencia y Eficiencia)
+*   **Hardware Sostenible:** Linux permite que ordenadores antiguos con procesadores veteranos o sin chip TPM funcionen con fluidez, algo que Windows 11 prohíbe.
+*   **Equivalencias de Software:** Se recomienda Flatpak para obtener versiones siempre actualizadas de navegadores y herramientas de oficina sin depender del sistema base.
+*   **Versiones de Debian:** El script permite crear máquinas virtuales con distintas versiones de Debian: **12 (bookworm)** (estable actual), **11 (bullseye)** (estable anterior) y **10 (buster)** (estable antigua).
 
-## 4. Change Log Highlights (v1.7.1)
+### C. Creativos: Diseño, Vídeo y Streaming (Economía de Recursos)
+*   **Kernel de Baja Latencia:** El script facilita la instalación del sabor **Ubuntu Studio**, optimizando el kernel para evitar "jitter" o latencia en grabaciones de audio y retransmisiones en directo.
+*   **Rendimiento de Vídeo:** Sin telemetría ni procesos antivirus pesados, Linux dedica más ciclos de CPU al renderizado en aplicaciones como **Blender** o **Kdenlive**.
 
-*   **Mirror Caching System:** Added cache mechanism to store the fastest mirror found, avoiding redundant network testing.
-*   **Parallel Mirror Testing:** Optimized mirror selection by limiting tests to the top 10 candidates, reducing selection time by approximately 70%.
-*   **Wallpaper Download Improvements:** Added retry logic and image format filtering to prevent failed downloads and ensure only valid image files are saved.
-*   **Dependency Validation:** Added input validation for RAM, CPU cores and disk size parameters at argument parsing time.
-*   **GRUB Installation Fix:** Fixed variable expansion issue where `$1` inside the chroot script was not correctly passing the device parameter.
-*   **Flatpak Improvement:** Improved Flatpak ID detection logic to properly distinguish between full IDs and package names.
-*   **Error Handling:** Enhanced error handling in wallpaper downloads, Flatpak installation and mirror selection.
+## 3. Recursos Educativos y Técnicos
 
-## 5. Bibliography and Educational Resources
+### Sistemas y Automatización
+1.  **Manual del Administrador de Debian:** [Guía oficial de administración](https://debian-handbook.info/browse/stable/).
+2.  **Vagrant Internals:** [Documentación de la arquitectura de cajas](https://www.vagrantup.com/docs/providers).
+3.  **Referencia de Netplan:** [Configuración de red moderna en Ubuntu](https://netplan.io/reference/).
+4.  **Estándar de Jerarquía del Sistema de Archivos:** [Especificación FHS 3.0](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html).
 
-(Same as README.md - see README.md for full list)
+### Multimedia y Producción
+5.  **Guía de Audio de Ubuntu Studio:** [Wiki técnica sobre audio en Linux](https://ubuntustudio.org/manual/audio/).
+6.  **Documentación de Krita:** [Manual para artistas digitales](https://docs.krita.org/es/).
+7.  **Proyecto PipeWire:** [El futuro del audio y el vídeo en Linux](https://pipewire.org/).
+8.  **Modo Estudio de OBS Studio:** [Documentación para streamers](https://obsproject.com/wiki/OBS-Studio-Overview).
+
+### Iniciación y Transición
+9.  **Linux Journey:** [Tutorial interactivo completo](https://linuxjourney.com/).
+10. **AlternativeTo Linux:** [Buscador de equivalencias de programas](https://alternativeto.net/platform/linux/).
+11. **DistroWatch:** [Base de datos de distribuciones Linux](https://distrowatch.com/).
+12. **Arch Wiki:** Referencia técnica universal (también para usuarios de Debian/Ubuntu). [wiki.archlinux.org](https://wiki.archlinux.org/).
+
+## 4. Lo Más Destacado del Historial (v1.7.3)
+
+*   **Soporte Parrot Security:** Añadida la capacidad de crear máquinas virtuales de la suite de seguridad Parrot OS (ediciones Security, Home, Core y Hack The Box) con múltiples escritorios.
+*   **Ediciones de Kali:** Añadido el selector de tipo de instalación (Default, Large, Everything, Headless, Core y Purple) y completada la lista de escritorios.
+*   **Corrección crítica:** Reparado un error de sintaxis (un `fi` ausente) en el bloque de selección de escritorio que impedía que el script arrancara.
+*   **Menú de escritorios rehecho:** El menú se genera limpiamente por distribución (Ubuntu/Debian/Kali/Parrot), eliminando opciones duplicadas y mal numeradas y la variable `$SKOLA` sin definir.
+*   **Validación de argumentos:** Añadida validación para `--os` (ubuntu/debian/kali/parrot) y `--hyp`.
+*   **Respeto del codename:** `fetch_latest_versions` ya no sobrescribe el codename elegido por el usuario.
+*   **Sistema de caché de mirrors:** Añadido mecanismo de caché para almacenar el mirror más rápido, evitando testees redundantes.
+*   **Pruebas paralelas de mirrors:** Selección optimizada limitando el testeo a los 10 mejores candidatos, reduciendo el tiempo en un 70% aproximadamente.
+*   **Mejoras en la descarga de fondos:** Añadida lógica de reintentos y filtrado de formatos de imagen.
+*   **Corrección de GRUB:** Solucionado un problema de expansión de variables donde `$1` dentro del script de chroot no pasaba correctamente el parámetro del dispositivo.
+*   **Mejora de Flatpak:** Mejorada la detección de IDs de Flatpak para distinguir IDs completos de nombres de paquete.
+
+## 5. Bibliografía y Recursos Educativos
+
+Consulta la sección "Recursos Educativos y Técnicos" de arriba y la lista completa en `README.md`.

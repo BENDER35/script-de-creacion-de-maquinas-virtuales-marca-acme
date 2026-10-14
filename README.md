@@ -1,9 +1,9 @@
 # VM-Acme: Generador de Laboratorios Virtuales para FP y Universidad
 
-![Version](https://img.shields.io/badge/version-1.7.1-blue.svg)
+![Version](https://img.shields.io/badge/version-1.7.3-blue.svg)
 ![Field](https://img.shields.io/badge/fines-Educativos/Sistemas/Creativos-green.svg)
 
-Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) personalizadas de forma totalmente automatizada. Es un recurso pedagógico y profesional diseñado para democratizar el acceso a la tecnología, ideal para quienes buscan una alternativa potente y gratuita a los sistemas propietarios.
+Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu/Kali/Parrot) personalizadas de forma totalmente automatizada. Es un recurso pedagógico y profesional diseñado para democratizar el acceso a la tecnología, ideal para quienes buscan una alternativa potente y gratuita a los sistemas propietarios.
 
 ## 🎯 Perfiles de Usuario
 
@@ -19,7 +19,7 @@ Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) 
     *   **Hardware Antiguo:** Dale una segunda vida a ese equipo que Windows considera "obsoleto". Linux vuela donde otros sistemas se arrastran.
     *   **Software Profesional:** Usa **Krita** para ilustración, **Blender** para 3D, **Kdenlive** para edición de vídeo y **OBS Studio** para tus directos.
 
-## 🚀 Características Principales (v1.7.1)
+## 🚀 Características Principales (v1.7.3)
 
 *   **Sistema Anti-Bloqueo `policy-rc.d`:** Garantiza que la instalación nunca se detenga por servicios rebeldes (como `ModemManager`). **Estabilidad absoluta en Hyper-V y entornos virtualizados**. Incorpora **registro con colores** para una mejor retroalimentación visual durante la ejecución (Rojo para errores, Amarillo para advertencias, Verde para info, Cyan para modo debug).
 *   **Gestión Inteligente de Dependencias:** Detección de paquetes virtuales y proveedores de fallback (ej: `qemu-user-binfmt`).
@@ -31,7 +31,10 @@ Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu) 
 *   **Caché de Mirrors:** Sistema de caché para almacenar el mirror más rápido encontrado, evitando testees redundantes en ejecuciones subsiguientes.
 *   **Pruebas Paralelas de Mirrors:** Optimización del testeo de mirrors reduciendo el número de candidates de 20 a 10, reduciendo el tiempo de selección en aproximadamente un 70%.
 *   **Soporte de Ubuntu Legacy:** Permite crear máquinas virtuales de Ubuntu incluso en versiones que ya no tienen soporte oficial. El script permite especificar un codename personalizado y emite una advertencia si la versión no tiene soporte oficial.
-*   **Soporte Kali Linux:** El script ahora soporta la creación de máquinas virtuales con Kali Linux, la distribución líder en pruebas de penetración. Incluye soporte para Kali Rolling (por defecto) y varios entornos de escritorio (Kali GNOME, Kali KDE, Kali XFCE, Kali LXQt, Kali MATE).
+*   **Soporte Kali Linux:** Permite crear máquinas virtuales con Kali Linux, la distribución líder en pruebas de penetración. Selección de tipo de instalación (Default, Large, Everything, Headless, Core y Purple) y de escritorios (XFCE, GNOME, KDE, MATE, LXDE, i3 y Enlightenment).
+*   **Soporte Parrot Security:** Permite crear máquinas virtuales de la suite de seguridad **Parrot OS**. Incluye las ediciones **Security** (kit ofensivo completo, por defecto), **Home**, **Core** y **Hack The Box**, con los escritorios KDE, MATE, XFCE, GNOME e i3. Descarga e instala automáticamente el keyring oficial de Parrot.
+*   **Keyrings oficiales de Kali y Parrot:** El script obtiene e integra las claves de firma oficiales de estos derivados de Debian (tanto en `debootstrap` como en el sistema invitado) para que APT funcione sin avisos.
+*   **Selección de versión Debian:** Permite elegir entre la versión estable actual, bookworm, bullseye, buster, testing o sid.
 
 ## 📘 Guía para Principiantes y Profesionales
 
@@ -56,6 +59,9 @@ sudo ./create_vm.sh --name lab_redes --os debian --ram 1024 --desktop none --apt
 
 # Ejemplo: Crear una estación para un ilustrador digital
 sudo ./create_vm.sh --name estudio_arte --os ubuntu --desktop xfce --apt krita,gimp,inkscape
+
+# Ejemplo: Crear un laboratorio de pentesting con Parrot Security
+sudo ./create_vm.sh --name lab_pentest --os parrot --edition security --desktop kde --ram 4096
 ```
 
 ## 📚 Bibliografía y Recursos de Aprendizaje

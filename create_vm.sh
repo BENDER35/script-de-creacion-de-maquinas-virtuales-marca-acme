@@ -59,6 +59,9 @@ cleanup() {
         log "Liberando dispositivo loop $LOOP_DEV..." "DEBUG"
         sudo losetup -d "$LOOP_DEV" 2>/dev/null || true
     fi
+    if [[ -n "$KEYRING_DIR" && -d "$KEYRING_DIR" ]]; then
+        rm -rf "$KEYRING_DIR" 2>/dev/null || true
+    fi
     log "Proceso terminado." "DEBUG"
 }
 trap cleanup ERR EXIT INT TERM
@@ -73,7 +76,9 @@ Creador de Máquinas Virtuales Marca Acme - Script de automatización para Siste
 Opciones:
   --help                Muestra esta ayuda.
   --name NOMBRE         Nombre de la VM (defecto: acme_vm_[timestamp]).
-  --os SO               Sistema operativo: ubuntu o debian (defecto: ubuntu).
+  --os SO               Sistema operativo: ubuntu, debian, kali o parrot (defecto: ubuntu).
+  --edition EDICION     Edición/tipo para Kali o Parrot. Kali: default, large, everything,
+                        headless, core, purple. Parrot: security, home, core, htb.
   --hyp HYPERVISOR      Hypervisor: vbox, vmware, qemu, raw, rootfs, vagrant, hyperv (defecto: vbox).
   --ram MB              Cantidad de RAM en MB (defecto: 2048).
   --disk SIZE           Tamaño del disco (ej: 50G) (defecto: 50G).
@@ -81,12 +86,13 @@ Opciones:
   --user USER           Usuario del sistema (defecto: arbol).
   --pass PASS           Contraseña del usuario (defecto: tronco).
   --flatpak PKGS        Lista de paquetes Flatpak separados por comas (ej: vlc,spotify).
-  --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, cinnamon, kylin, mate, edubuntu, ubuntustudio, none (defecto: none).
+  --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, cinnamon, kylin,
+                        mate, edubuntu, ubuntustudio, skolelinux, kali-<de>, parrot-<de>, none.
   --mirror URL          URL del mirror personalizado.
   --verbose             Activa el modo de depuración (set -x).
 
 Ejemplo:
-  sudo $0 --name mi_servidor --os debian --ram 4096 --desktop xfce --verbose
+  sudo $0 --name lab_seguridad --os parrot --edition security --desktop xfce --ram 4096
 
 Nota: Este script requiere privilegios de superusuario (sudo) para montar discos y ejecutar debootstrap.
 EOF
@@ -114,7 +120,13 @@ SELECTED_MIRROR=""
 WALLHAVEN_QUERY=""
 LOCAL_WP_DIR=""
 EXTREPOS=""
+OS=""
 OS_CODENAME=""
+DISTRO_EDITION=""
+HYPERVISOR=""
+KEYRING_DIR=""
+BOOTSTRAP_KEYRING=""
+GUEST_KEYRING_NAME=""
 VERBOSE_MODE="n"
 
 # --- Argument Parsing ---
@@ -123,6 +135,7 @@ while [[ "$#" -gt 0 ]]; do
         --help) show_help ;;
         --name) NAME="$2"; shift ;;
         --os) OS="$2"; shift ;;
+        --edition) DISTRO_EDITION="$2"; shift ;;
         --hyp) HYPERVISOR="$2"; shift ;;
         --ram) VM_RAM="$2"; shift ;;
         --disk) VM_DISK_SIZE="$2"; shift ;;
@@ -138,11 +151,29 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+# --- Validación de argumentos ---
+if [[ -n "$OS" ]]; then
+    case "$OS" in
+        ubuntu|debian|kali|parrot) ;;
+        *) log "Sistema operativo no soportado: '$OS'. Use: ubuntu, debian, kali o parrot." "ERROR"; exit 1 ;;
+    esac
+fi
+if [[ -n "$HYPERVISOR" ]]; then
+    case "$HYPERVISOR" in
+        vbox|vmware|qemu|raw|rootfs|vagrant|hyperv) ;;
+        *) log "Hypervisor no soportado: '$HYPERVISOR'. Use: vbox, vmware, qemu, raw, rootfs, vagrant o hyperv." "ERROR"; exit 1 ;;
+    esac
+fi
+
 # --- Mirror Selection Logic ---
 find_fastest_mirror() {
     local os=$1
     local mirrors=()
     log "Analizando mirrors para encontrar el más rápido..."
+    case "$os" in
+        kali) echo "http://http.kali.org/kali/"; return ;;
+        parrot) echo "https://deb.parrot.sh/parrot/"; return ;;
+    esac
     if [[ "$os" == "ubuntu" ]]; then
         mirrors=($(curl -s http://mirrors.ubuntu.com/mirrors.txt | head -n 10))
         [[ ${#mirrors[@]} -eq 0 ]] && mirrors=("http://archive.ubuntu.com/ubuntu/" "http://es.archive.ubuntu.com/ubuntu/")
@@ -169,8 +200,12 @@ find_fastest_mirror() {
 
 find_mirror_by_country() {
     local os=$1
+    case "$os" in
+        kali) echo "http://http.kali.org/kali/"; return ;;
+        parrot) echo "https://deb.parrot.sh/parrot/"; return ;;
+    esac
     log "Detectando país por geolocalización IP..."
-    local country=$(curl -s --connect-timeout 2 https://ipapi.co/country/ | tr '[:upper:]' '[:lower:]')
+    local country=$(curl -s --connect-timeout 2 https://ipapi.co/country/ | tr '[:upper:]' '[:lower:]' || true)
     
     if [[ -z "$country" || ${#country} -ne 2 ]]; then
         log "No se pudo detectar el país, usando mirror global." "WARNING"
@@ -190,7 +225,11 @@ find_fastest_mirror_parallel() {
     local os=$1
     local mirrors=()
     log "Iniciando testeo de red paralelo para encontrar el mejor mirror..."
-    
+    case "$os" in
+        kali) echo "http://http.kali.org/kali/"; return ;;
+        parrot) echo "https://deb.parrot.sh/parrot/"; return ;;
+    esac
+
     if [[ "$os" == "ubuntu" ]]; then
         mirrors=($(curl -s --connect-timeout 2 http://mirrors.ubuntu.com/mirrors.txt))
     else
@@ -223,15 +262,29 @@ find_fastest_mirror_parallel() {
 
 fetch_latest_versions() {
     log "Detectando codename del sistema..." "DEBUG"
-    if [[ "$OS" == "ubuntu" ]]; then
-        OS_CODENAME=$(curl -s https://changelogs.ubuntu.com/meta-release | grep "Dist: " | tail -1 | awk '{print $2}')
-        [[ -z "$OS_CODENAME" ]] && OS_CODENAME="noble"
-    else
-        # Try to get testing codename if stable is too old, or just use stable
-        OS_CODENAME=$(curl -s http://ftp.debian.org/debian/dists/stable/Release | grep "^Codename:" | awk '{print $2}')
-        [[ -z "$OS_CODENAME" ]] && OS_CODENAME="bookworm"
+    # Respetar un codename ya seleccionado por el usuario (--os o menú)
+    if [[ -n "$OS_CODENAME" ]]; then
+        log "Usando codename seleccionado manualmente: $OS ($OS_CODENAME)" "INFO"
+        return
     fi
-    
+    case "$OS" in
+        ubuntu)
+            OS_CODENAME=$(curl -s https://changelogs.ubuntu.com/meta-release | grep "Dist: " | tail -1 | awk '{print $2}' || true)
+            [[ -z "$OS_CODENAME" ]] && OS_CODENAME="noble"
+            ;;
+        kali)
+            OS_CODENAME="kali-rolling"
+            ;;
+        parrot)
+            OS_CODENAME="parrot"
+            ;;
+        *)
+            # Debian: codename de la rama estable actual
+            OS_CODENAME=$(curl -s http://ftp.debian.org/debian/dists/stable/Release | grep "^Codename:" | awk '{print $2}' || true)
+            [[ -z "$OS_CODENAME" ]] && OS_CODENAME="bookworm"
+            ;;
+    esac
+
     if [[ -z "$OS_CODENAME" ]]; then
         log "Error al detectar codename, usando valores por defecto." "WARNING"
         [[ "$OS" == "ubuntu" ]] && OS_CODENAME="noble" || OS_CODENAME="bookworm"
@@ -292,14 +345,16 @@ check_dependencies() {
     
     if [[ ${#missing[@]} -gt 0 ]]; then
         log "Instalando dependencias faltantes: ${missing[*]}" "INFO"
-        sudo apt-get update
-        # Use a more robust install that handles potential package name variations
+        sudo apt-get update || log "No se pudo actualizar la lista de paquetes del host." "WARNING"
+        # Use a more robust install that handles potential package name variations.
+        # Los fallos no son fatales: se avisa y se continúa (p.ej. qemu-user no es necesario en builds amd64).
         for m in "${missing[@]}"; do
             case $m in
-                7z) sudo apt-get install -y p7zip-full || sudo apt-get install -y p7zip ;;
-                rar) sudo apt-get install -y unrar-free || sudo apt-get install -y rar ;;
-                qemu-user-static) sudo apt-get install -y qemu-user-static || sudo apt-get install -y qemu-user-binfmt || sudo apt-get install -y qemu-user-binfmt-hwe ;;
-                *) sudo apt-get install -y "$m" ;;
+                7z) sudo apt-get install -y p7zip-full || sudo apt-get install -y p7zip || log "No se pudo instalar 7z (p7zip)." "WARNING" ;;
+                rar) sudo apt-get install -y unrar-free || sudo apt-get install -y rar || log "No se pudo instalar rar/unrar." "WARNING" ;;
+                qemu-user-static) sudo apt-get install -y qemu-user-static || sudo apt-get install -y qemu-user-binfmt || sudo apt-get install -y qemu-user-binfmt-hwe || log "No se pudo instalar emulación qemu-user (no necesaria para builds amd64)." "WARNING" ;;
+                VBoxManage) log "VBoxManage no encontrado. Instala VirtualBox para exportar en formato VDI." "WARNING" ;;
+                *) sudo apt-get install -y "$m" || log "No se pudo instalar $m." "WARNING" ;;
             esac
         done
     else
@@ -315,7 +370,7 @@ if [[ -z "$NAME" ]]; then
     [[ -z "$NAME" ]] && NAME="acme_vm_$(date +%s)"
 fi
 
-if [[ -z "$HYPERVISOR" || "$HYPERVISOR" == "vbox" ]]; then
+if [[ -z "$HYPERVISOR" ]]; then
     echo "Formato/Hypervisor: 1) VirtualBox 2) VMware 3) QEMU 4) RAW 5) RootFS 6) Vagrant 7) Hyper-V"
     read -p "Opción [1]: " hyp_opt
     case $hyp_opt in
@@ -332,22 +387,62 @@ fi
 check_dependencies
 
 if [[ -z "$OS" ]]; then
-    echo "Sistema: 1) Ubuntu 2) Debian 3) Kali Linux"
+    echo "Sistema: 1) Ubuntu 2) Debian 3) Kali Linux 4) Parrot Security"
     read -p "Opción [1]: " os_opt
-    case $os_opt in 
+    case $os_opt in
         2) OS="debian" ;;
-        3) OS="kali" ; OS_CODENAME="kali-rolling" ;;
-        1) read -p "Ubuntu versión (codename, ej: focal, jammy, noble) o 'soporte' para la actual: " ubuntu_ver
-           if [[ "$ubuntu_ver" == "soporte" ]]; then
-               OS="ubuntu" ; OS_CODENAME="noble"
-           else
-               OS="ubuntu" ; OS_CODENAME="$ubuntu_ver"
-               # Verificar si la versión tiene soporte oficial
-               if ! curl -s "https://changelogs.ubuntu.com/meta-release" | grep -q "$ubuntu_ver" 2>/dev/null; then
-                   log "ADVERTENCIA: $ubuntu_ver puede que no tenga soporte oficial." "WARNING"
-               fi
-           fi
-        ;;
+        3) OS="kali" ;;
+        4) OS="parrot" ;;
+        *) OS="ubuntu" ;;
+    esac
+fi
+
+# --- Selección de versión / edición según el sistema ---
+if [[ "$OS" == "ubuntu" && -z "$OS_CODENAME" ]]; then
+    read -p "Ubuntu versión (codename, ej: focal, jammy, noble) o 'soporte' para la actual: " ubuntu_ver
+    if [[ "$ubuntu_ver" == "soporte" || -z "$ubuntu_ver" ]]; then
+        OS_CODENAME="noble"
+    else
+        OS_CODENAME="$ubuntu_ver"
+        # Verificar si la versión tiene soporte oficial
+        if ! curl -s "https://changelogs.ubuntu.com/meta-release" | grep -q "$ubuntu_ver" 2>/dev/null; then
+            log "ADVERTENCIA: $ubuntu_ver puede que no tenga soporte oficial." "WARNING"
+        fi
+    fi
+elif [[ "$OS" == "debian" && -z "$OS_CODENAME" ]]; then
+    echo "Versión Debian: 1) Automática (estable actual) 2) bookworm 3) bullseye 4) buster 5) testing 6) sid"
+    read -p "Opción [1]: " deb_opt
+    case $deb_opt in
+        2) OS_CODENAME="bookworm" ;;
+        3) OS_CODENAME="bullseye" ;;
+        4) OS_CODENAME="buster" ;;
+        5) OS_CODENAME="testing" ;;
+        6) OS_CODENAME="sid" ;;
+        *) OS_CODENAME="" ;; # Se autodetectará
+    esac
+fi
+
+if [[ "$OS" == "kali" && -z "$DISTRO_EDITION" ]]; then
+    echo "Tipo de instalación Kali: 1) Default (recomendado) 2) Large 3) Everything 4) Headless 5) Core 6) Purple (defensivo)"
+    read -p "Opción [1]: " kali_ed
+    case $kali_ed in
+        2) DISTRO_EDITION="large" ;;
+        3) DISTRO_EDITION="everything" ;;
+        4) DISTRO_EDITION="headless" ;;
+        5) DISTRO_EDITION="core" ;;
+        6) DISTRO_EDITION="purple" ;;
+        *) DISTRO_EDITION="default" ;;
+    esac
+fi
+
+if [[ "$OS" == "parrot" && -z "$DISTRO_EDITION" ]]; then
+    echo "Edición Parrot: 1) Security (suite de seguridad, recomendado) 2) Home 3) Core 4) Hack The Box"
+    read -p "Opción [1]: " parrot_ed
+    case $parrot_ed in
+        2) DISTRO_EDITION="home" ;;
+        3) DISTRO_EDITION="core" ;;
+        4) DISTRO_EDITION="htb" ;;
+        *) DISTRO_EDITION="security" ;;
     esac
 fi
 
@@ -391,7 +486,14 @@ if [[ -z "$SELECTED_MIRROR" ]]; then
     echo "Mirrors: t) Default y) Manual l) busqueda del mirror mas rapido (por pais) b) busqueda de los mirrors mas rapidos (testeo de red)"
     read -n 1 -p "Opción [l]: " mirror_choice; echo ""
     case $mirror_choice in
-        t|T) SELECTED_MIRROR=$([[ "$OS" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/") ;;
+        t|T)
+            case "$OS" in
+                ubuntu) SELECTED_MIRROR="http://archive.ubuntu.com/ubuntu/" ;;
+                kali) SELECTED_MIRROR="http://http.kali.org/kali/" ;;
+                parrot) SELECTED_MIRROR="https://deb.parrot.sh/parrot/" ;;
+                *) SELECTED_MIRROR="http://deb.debian.org/debian/" ;;
+            esac
+            ;;
         y|Y) read -p "URL del Mirror: " SELECTED_MIRROR ;;
         b|B) SELECTED_MIRROR=$(find_fastest_mirror_parallel "$OS") ;;
         *) SELECTED_MIRROR=$(find_mirror_by_country "$OS") ;;
@@ -402,71 +504,11 @@ fi
 read -p "¿Repositorio extrepo? (ej: vscode,signal) [ninguno]: " EXTREPOS
 
 if [[ -z "$DESKTOP" ]]; then
-    if [[ "$OS" == "ubuntu" ]]; then
-        while true; do
-            echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) gnome(edub.) 8) cinnamon(ub) 9) Kylin 10) MATE 11) Skolelinux 12) Kali GNOME 13) Kali KDE 15) Kali XFCE 16) Kali LXQt 17) Kali MATE 17) edubuntu 17) ubuntustudio 17) Ninguno"
-            read -p "Selecciona escritorio [17]: " desk_opt
-            case $desk_opt in
-                1) DESKTOP="gnome"; break ;;
-                2) DESKTOP="kde"; break ;;
-                3) DESKTOP="xfce"; break ;;
-                4) DESKTOP="lxde"; break ;;
-                6) DESKTOP="budgie"; break ;;
-                7) DESKTOP="edubuntu"; break ;;
-                8) DESKTOP="cinnamon"; break ;;
-                9) DESKTOP="kylin"; break ;;
-                10) 
-                    echo "AVISO: esta distro solo esta hasta 25.10 continuo y esta en proceso de reestructuracion del equipo directivo del sabor de ubuntu, con lo cual es posible que pueda eliminarse esta opcion en un futuro si canonical decide quitar este sabor (edicion) de su oferta, ¿estas seguro que quieres continuar? (S/N)"
-                    read -n 1 -p "Opción: " confirm_mate; echo ""
-                    if [[ "$confirm_mate" == "s" || "$confirm_mate" == "S" ]]; then
-                        DESKTOP="mate"
-                        break
-                    else
-                        echo "Regresando a la selección de escritorios..."
-                        continue
-                    fi
-                    ;;
-                10) 
-                    echo "AVISO: esta distro solo esta hasta 25.10 continuo y esta en proceso de reestructuracion del equipo directivo del sabor de ubuntu, con lo cual es posible que pueda eliminarse esta opcion en un futuro si canonical decide quitar este sabor (edicion) de su oferta, ¿estas seguro que quieres continuar? (S/N)"
-                    read -n 1 -p "Opción: " confirm_mate; echo ""
-                    if [[ "$confirm_mate" == "s" || "$confirm_mate" == "S" ]]; then
-                        DESKTOP="mate"
-                        break
-                    else
-                        echo "Regresando a la selección de escritorios..."
-                        continue
-                    fi
-                    ;;
-                11) if [[ -n "$SKOLA" ]]; then
-                        DESKTOP="skolelinux"
-                    else
-                        DESKTOP="ubuntustudio"
-                    fi
-                    break ;;
-                12) if [[ "$OS" == "kali" ]]; then
-                        DESKTOP="kali-gnome"
-                    else
-                        DESKTOP="ubuntustudio"
-                    fi
-                    break ;;
-                15) if [[ "$OS" == "kali" ]]; then
-                        DESKTOP="kali-xfce"
-                    else
-                        DESKTOP="ubuntustudio"
-                    fi
-                    break ;;
-                16) if [[ "$OS" == "kali" ]]; then
-                        DESKTOP="kali-mate"
-                    else
-                        DESKTOP="ubuntustudio"
-                    fi
-                    break ;;
-                17) DESKTOP="none"; break ;
-            esac
-        done
-            if [[ "$OS" == "debian" ]]; then
-                echo "Escritorio Debian: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Skolelinux 8) Ninguno"
-                read -p "Selecciona escritorio [8]: " desk_opt
+    case "$OS" in
+        ubuntu)
+            while true; do
+                echo "Escritorio Ubuntu: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Edubuntu 8) Cinnamon 9) Kylin 10) MATE [aviso] 11) Unity [aviso] 12) Ubuntu Studio 13) Ninguno"
+                read -p "Selecciona escritorio [13]: " desk_opt
                 case $desk_opt in
                     1) DESKTOP="gnome"; break ;;
                     2) DESKTOP="kde"; break ;;
@@ -474,21 +516,84 @@ if [[ -z "$DESKTOP" ]]; then
                     4) DESKTOP="lxde"; break ;;
                     5) DESKTOP="lxqt"; break ;;
                     6) DESKTOP="budgie"; break ;;
-                    7) if [[ -n "$SKOLA" ]]; then
-                            DESKTOP="skolelinux"
+                    7) DESKTOP="edubuntu"; break ;;
+                    8) DESKTOP="cinnamon"; break ;;
+                    9) DESKTOP="kylin"; break ;;
+                    10)
+                        echo "AVISO: Ubuntu MATE llega hasta 25.10 y esta en proceso de reestructuracion; es posible que Canonical elimine este sabor en el futuro. ¿Deseas continuar? (S/N)"
+                        read -n 1 -p "Opción: " confirm_mate; echo ""
+                        if [[ "$confirm_mate" == "s" || "$confirm_mate" == "S" ]]; then
+                            DESKTOP="mate"; break
                         else
-                            DESKTOP="xfce"
+                            echo "Regresando a la selección de escritorios..."
+                            continue
                         fi
-                        break ;;
-                    8) DESKTOP="none"; break ;;
+                        ;;
+                    11)
+                        echo "AVISO: Unity no tiene soporte oficial reciente y puede fallar. ¿Deseas continuar? (S/N)"
+                        read -n 1 -p "Opción: " confirm_unity; echo ""
+                        if [[ "$confirm_unity" == "s" || "$confirm_unity" == "S" ]]; then
+                            DESKTOP="unity"; break
+                        else
+                            echo "Regresando a la selección de escritorios..."
+                            continue
+                        fi
+                        ;;
+                    12) DESKTOP="ubuntustudio"; break ;;
+                    *) DESKTOP="none"; break ;;
                 esac
-            else
-                echo "Escritorio: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Ninguno"
-                read -p "Selecciona escritorio [7]: " desk_opt
-                case $desk_opt in
-                    1) DESKTOP="gnome" ;; 2) DESKTOP="kde" ;; 3) DESKTOP="xfce" ;; 4) DESKTOP="lxde" ;; 5) DESKTOP="lxqt" ;; 6) DESKTOP="budgie" ;; 7) DESKTOP="none" ;;
-                esac
-            fi
+            done
+            ;;
+        debian)
+            echo "Escritorio Debian: 1) GNOME 2) KDE 3) XFCE 4) LXDE 5) LXQt 6) Budgie 7) Cinnamon 8) MATE 9) Debian Edu (Skolelinux) 10) Ninguno"
+            read -p "Selecciona escritorio [10]: " desk_opt
+            case $desk_opt in
+                1) DESKTOP="gnome" ;;
+                2) DESKTOP="kde" ;;
+                3) DESKTOP="xfce" ;;
+                4) DESKTOP="lxde" ;;
+                5) DESKTOP="lxqt" ;;
+                6) DESKTOP="budgie" ;;
+                7) DESKTOP="cinnamon" ;;
+                8) DESKTOP="mate" ;;
+                9) DESKTOP="skolelinux" ;;
+                *) DESKTOP="none" ;;
+            esac
+            ;;
+        kali)
+            echo "Escritorio Kali: 1) XFCE 2) GNOME 3) KDE 4) MATE 5) LXDE 6) i3 7) Enlightenment 8) Ninguno (headless)"
+            read -p "Selecciona escritorio [1]: " desk_opt
+            case $desk_opt in
+                2) DESKTOP="kali-gnome" ;;
+                3) DESKTOP="kali-kde" ;;
+                4) DESKTOP="kali-mate" ;;
+                5) DESKTOP="kali-lxde" ;;
+                6) DESKTOP="kali-i3" ;;
+                7) DESKTOP="kali-e17" ;;
+                8) DESKTOP="none" ;;
+                *) DESKTOP="kali-xfce" ;;
+            esac
+            ;;
+        parrot)
+            echo "Escritorio Parrot: 1) KDE 2) MATE 3) XFCE 4) GNOME 5) i3 6) Ninguno (headless)"
+            read -p "Selecciona escritorio [1]: " desk_opt
+            case $desk_opt in
+                2) DESKTOP="parrot-mate" ;;
+                3) DESKTOP="parrot-xfce" ;;
+                4) DESKTOP="parrot-gnome" ;;
+                5) DESKTOP="parrot-i3" ;;
+                6) DESKTOP="none" ;;
+                *) DESKTOP="parrot-kde" ;;
+            esac
+            ;;
+    esac
+fi
+
+# Normalizar nombres de escritorio para Kali/Parrot (permite --desktop kde ademas de kali-kde/parrot-kde)
+if [[ "$OS" == "kali" && "$DESKTOP" != "none" && "$DESKTOP" != kali-* ]]; then
+    DESKTOP="kali-$DESKTOP"
+elif [[ "$OS" == "parrot" && "$DESKTOP" != "none" && "$DESKTOP" != parrot-* ]]; then
+    DESKTOP="parrot-$DESKTOP"
 fi
 
 echo "Compresión: 1) zip 2) rar 3) 7z 4) Ninguna"
@@ -548,16 +653,72 @@ MOUNT_DIR=$(mktemp -d /tmp/vm_mount.XXXXXX)
 log "Montando sistema de archivos en $MOUNT_DIR..." "DEBUG"
 sudo mount "$PART_DEV" "$MOUNT_DIR"
 
+# --- Preparar keyring para derivados de Debian (Kali / Parrot) ---
+prepare_distro_keyring() {
+    BOOTSTRAP_KEYRING=""
+    GUEST_KEYRING_NAME=""
+    case "$OS" in
+        kali)
+            KEYRING_DIR=$(mktemp -d /tmp/vm_keyring.XXXXXX)
+            local kr_file="$KEYRING_DIR/kali-archive-keyring.gpg"
+            log "Descargando keyring oficial de Kali..." "INFO"
+            if curl -fsSL "https://archive.kali.org/archive-keyring.gpg" -o "$kr_file"; then
+                BOOTSTRAP_KEYRING="$kr_file"
+                GUEST_KEYRING_NAME="kali-archive-keyring.gpg"
+            else
+                log "No se pudo descargar el keyring de Kali; se intentará sin verificación de firma." "WARNING"
+            fi
+            ;;
+        parrot)
+            KEYRING_DIR=$(mktemp -d /tmp/vm_keyring.XXXXXX)
+            local kr_file="$KEYRING_DIR/parrot-archive-keyring.gpg"
+            log "Descargando keyring oficial de Parrot..." "INFO"
+            if ! command -v gpg &> /dev/null; then
+                sudo apt-get install -y gnupg || true
+            fi
+            if curl -fsSL "https://deb.parrot.sh/parrot/misc/parrotsec.gpg" | gpg --dearmor > "$kr_file" 2>/dev/null; then
+                BOOTSTRAP_KEYRING="$kr_file"
+                GUEST_KEYRING_NAME="parrot-archive-keyring.gpg"
+            else
+                log "No se pudo descargar el keyring de Parrot; se intentará sin verificación de firma." "WARNING"
+            fi
+            ;;
+    esac
+}
+
+# Un script de debootstrap por suite. Para suites sin script propio (p.ej. parrot/echo/lory)
+# usamos el de 'sid' (base Debian testing/unstable sobre la que se apoyan estos derivados).
 if [[ ! -e "/usr/share/debootstrap/scripts/$OS_CODENAME" ]]; then
-    log "Ajustando script de debootstrap para $OS_CODENAME (fallback)..." "WARNING"
-    LATEST_SCRIPT=$(ls -v /usr/share/debootstrap/scripts/ | grep -E '^[a-z]+$' | tail -n 1)
-    log "Usando script base: $LATEST_SCRIPT" "DEBUG"
-    sudo ln -sf "$LATEST_SCRIPT" "/usr/share/debootstrap/scripts/$OS_CODENAME"
+    if [[ -e /usr/share/debootstrap/scripts/sid ]]; then
+        log "Creando script de debootstrap '$OS_CODENAME' -> 'sid'..." "WARNING"
+        sudo ln -sf sid "/usr/share/debootstrap/scripts/$OS_CODENAME"
+    else
+        log "Ajustando script de debootstrap para $OS_CODENAME (fallback)..." "WARNING"
+        LATEST_SCRIPT=$(ls -v /usr/share/debootstrap/scripts/ | grep -E '^[a-z]+$' | tail -n 1)
+        log "Usando script base: $LATEST_SCRIPT" "DEBUG"
+        sudo ln -sf "$LATEST_SCRIPT" "/usr/share/debootstrap/scripts/$OS_CODENAME"
+    fi
 fi
+
+prepare_distro_keyring
+
+DEBOOTSTRAP_ARGS=(--arch amd64)
+[[ -n "$BOOTSTRAP_KEYRING" ]] && DEBOOTSTRAP_ARGS+=(--keyring="$BOOTSTRAP_KEYRING")
+case "$OS" in
+    kali|parrot) DEBOOTSTRAP_ARGS+=(--components="main,contrib,non-free,non-free-firmware") ;;
+esac
 
 log "Ejecutando debootstrap (esto puede tardar varios minutos)..." "INFO"
 log "Mirror: $SELECTED_MIRROR | Codename: $OS_CODENAME" "DEBUG"
-sudo debootstrap --arch amd64 "$OS_CODENAME" "$MOUNT_DIR" "$SELECTED_MIRROR"
+sudo debootstrap "${DEBOOTSTRAP_ARGS[@]}" "$OS_CODENAME" "$MOUNT_DIR" "$SELECTED_MIRROR"
+
+# Copiar el keyring al interior de la VM para que APT confíe en los repositorios del derivado
+if [[ -n "$BOOTSTRAP_KEYRING" && -n "$GUEST_KEYRING_NAME" ]]; then
+    log "Instalando keyring en el sistema invitado..." "DEBUG"
+    sudo mkdir -p "$MOUNT_DIR/etc/apt/trusted.gpg.d" "$MOUNT_DIR/usr/share/keyrings"
+    sudo cp "$BOOTSTRAP_KEYRING" "$MOUNT_DIR/etc/apt/trusted.gpg.d/$GUEST_KEYRING_NAME"
+    sudo cp "$BOOTSTRAP_KEYRING" "$MOUNT_DIR/usr/share/keyrings/$GUEST_KEYRING_NAME"
+fi
 
 # --- CHROOT CONFIG ---
 log "Preparando fase CHROOT..." "INFO"
@@ -566,7 +727,8 @@ log "Preparando fase CHROOT..." "INFO"
 G_PKG=""
 if [[ "$HYPERVISOR" == "vbox" || "$HYPERVISOR" == "vagrant" ]]; then
     G_PKG="virtualbox-guest-x11 virtualbox-guest-utils"
-    [[ "$OS" == "debian" ]] && G_PKG="$G_PKG virtualbox-guest-dkms"
+    # Los derivados de Debian necesitan el módulo DKMS; Ubuntu ya lo trae en el kernel
+    [[ "$OS" != "ubuntu" ]] && G_PKG="$G_PKG virtualbox-guest-dkms"
 elif [[ "$HYPERVISOR" == "vmware" ]]; then
     G_PKG="open-vm-tools-desktop"
 elif [[ "$HYPERVISOR" == "qemu" ]]; then
@@ -579,7 +741,35 @@ if [[ "$OS" == "ubuntu" ]]; then
     KERNEL_PKGS="linux-image-generic grub-pc"
 else
     KERNEL_PKGS="linux-image-amd64 grub-pc"
-    [[ "$HYPERVISOR" == "vbox" ]] && KERNEL_PKGS="$KERNEL_PKGS linux-headers-amd64 build-essential"
+    [[ "$HYPERVISOR" == "vbox" || "$HYPERVISOR" == "vagrant" ]] && KERNEL_PKGS="$KERNEL_PKGS linux-headers-amd64 build-essential"
+fi
+
+# Metapaquetes propios de la distribución (Kali / Parrot) según edición y escritorio
+DISTRO_META_PKGS=""
+if [[ "$OS" == "kali" ]]; then
+    case "$DISTRO_EDITION" in
+        large) DISTRO_META_PKGS="kali-linux-large" ;;
+        everything) DISTRO_META_PKGS="kali-linux-everything" ;;
+        headless) DISTRO_META_PKGS="kali-linux-headless" ;;
+        core) DISTRO_META_PKGS="kali-linux-core" ;;
+        purple) DISTRO_META_PKGS="kali-linux-default kali-tools-identify kali-tools-protect kali-tools-detect kali-tools-respond kali-tools-recover kali-themes-purple" ;;
+        *) DISTRO_META_PKGS="kali-linux-default" ;;
+    esac
+elif [[ "$OS" == "parrot" ]]; then
+    PARROT_DE_PKG=""
+    case "$DESKTOP" in
+        parrot-kde) PARROT_DE_PKG="parrot-desktop-kde" ;;
+        parrot-mate) PARROT_DE_PKG="parrot-desktop-mate" ;;
+        parrot-xfce) PARROT_DE_PKG="parrot-desktop-xfce" ;;
+        parrot-gnome) PARROT_DE_PKG="parrot-desktop-gnome" ;;
+        parrot-i3) PARROT_DE_PKG="parrot-desktop-i3" ;;
+    esac
+    case "$DISTRO_EDITION" in
+        core) DISTRO_META_PKGS="parrot-core" ;;
+        home) DISTRO_META_PKGS="parrot-core parrot-interface parrot-interface-home $PARROT_DE_PKG" ;;
+        htb) DISTRO_META_PKGS="parrot-core parrot-interface parrot-tools-full parrot-drivers $PARROT_DE_PKG" ;;
+        *) DISTRO_META_PKGS="parrot-core parrot-interface parrot-interface-extra parrot-tools-full parrot-drivers $PARROT_DE_PKG" ;;
+    esac
 fi
 
 cat <<CHROOT_SCRIPT > "$CONFIG_DIR/$NAME/setup.sh"
@@ -601,17 +791,31 @@ echo "$NAME" > /etc/hostname
 echo "127.0.0.1 localhost $NAME" > /etc/hosts
 
 echo "Configurando repositorios..."
-if [[ "$OS" == "ubuntu" ]]; then
-    echo "deb $SELECTED_MIRROR $OS_CODENAME main restricted universe multiverse" > /etc/apt/sources.list
-    echo "deb $SELECTED_MIRROR $OS_CODENAME-updates main restricted universe multiverse" >> /etc/apt/sources.list
-    echo "deb $SELECTED_MIRROR $OS_CODENAME-security main restricted universe multiverse" >> /etc/apt/sources.list
-else
-    # Debian: ensure contrib, non-free and backports are always there (Fast Track requirement)
-    echo "deb $SELECTED_MIRROR $OS_CODENAME main contrib non-free non-free-firmware" > /etc/apt/sources.list
-    echo "deb $SELECTED_MIRROR $OS_CODENAME-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
-    echo "deb $SELECTED_MIRROR $OS_CODENAME-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
-    echo "deb http://security.debian.org/debian-security $OS_CODENAME-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
-fi
+case "$OS" in
+    ubuntu)
+        echo "deb $SELECTED_MIRROR $OS_CODENAME main restricted universe multiverse" > /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-updates main restricted universe multiverse" >> /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-security main restricted universe multiverse" >> /etc/apt/sources.list
+        ;;
+    kali)
+        # Kali Rolling: contrib/non-free/non-free-firmware obligatorios para las herramientas
+        echo "deb $SELECTED_MIRROR kali-rolling main contrib non-free non-free-firmware" > /etc/apt/sources.list
+        ;;
+    parrot)
+        # Parrot: suite base (parrot/echo/lory) + updates/security/backports
+        echo "deb $SELECTED_MIRROR $OS_CODENAME main contrib non-free non-free-firmware" > /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR ${OS_CODENAME}-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR ${OS_CODENAME}-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR ${OS_CODENAME}-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        ;;
+    *)
+        # Debian: contrib, non-free y backports siempre presentes (requisito de Fast Track)
+        echo "deb $SELECTED_MIRROR $OS_CODENAME main contrib non-free non-free-firmware" > /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        echo "deb http://security.debian.org/debian-security $OS_CODENAME-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        ;;
+esac
 
 echo "Actualizando listas de paquetes..."
 apt-get update
@@ -839,24 +1043,60 @@ fi
 
 if [[ "$DESKTOP" != "none" ]]; then
     echo "Instalando entorno de escritorio: $DESKTOP..."
-    if [[ "$OS" == "ubuntu" ]]; then
-        case "$DESKTOP" in
-            gnome) apt-get install -y ubuntu-desktop ;;
-            kde) apt-get install -y kubuntu-desktop ;;
-            xfce) apt-get install -y xubuntu-desktop ;;
-            lxde) apt-get install -y lubuntu-desktop ;;
-            lxqt) apt-get install -y lubuntu-desktop ;;
-            budgie) apt-get install -y ubuntu-budgie-desktop ;;
-            edubuntu) apt-get install -y edubuntu-desktop ;;
-            cinnamon) apt-get install -y ubuntucinnamon-desktop ;;
-            kylin) apt-get install -y ubuntukylin-desktop ;;
-            mate) apt-get install -y ubuntu-mate-desktop ;;
-            unity) apt-get install -y ubuntu-unity-desktop ;;
-            ubuntustudio) apt-get install -y ubuntustudio-desktop ubuntustudio-default-settings ;;
-        esac
-    else
-        apt-get install -y task-${DESKTOP}-desktop
-    fi
+    case "$OS" in
+        ubuntu)
+            case "$DESKTOP" in
+                gnome) apt-get install -y ubuntu-desktop ;;
+                kde) apt-get install -y kubuntu-desktop ;;
+                xfce) apt-get install -y xubuntu-desktop ;;
+                lxde) apt-get install -y lubuntu-desktop ;;
+                lxqt) apt-get install -y lubuntu-desktop ;;
+                budgie) apt-get install -y ubuntu-budgie-desktop ;;
+                edubuntu) apt-get install -y edubuntu-desktop ;;
+                cinnamon) apt-get install -y ubuntucinnamon-desktop ;;
+                kylin) apt-get install -y ubuntukylin-desktop ;;
+                mate) apt-get install -y ubuntu-mate-desktop ;;
+                unity) apt-get install -y ubuntu-unity-desktop ;;
+                ubuntustudio) apt-get install -y ubuntustudio-desktop ubuntustudio-default-settings ;;
+            esac
+            ;;
+        kali)
+            case "$DESKTOP" in
+                kali-gnome) apt-get install -y kali-desktop-gnome ;;
+                kali-kde) apt-get install -y kali-desktop-kde ;;
+                kali-xfce) apt-get install -y kali-desktop-xfce ;;
+                kali-lxde) apt-get install -y kali-desktop-lxde ;;
+                kali-mate) apt-get install -y kali-desktop-mate ;;
+                kali-i3) apt-get install -y kali-desktop-i3 ;;
+                kali-e17) apt-get install -y kali-desktop-e17 ;;
+            esac
+            ;;
+        parrot)
+            case "$DESKTOP" in
+                parrot-kde) apt-get install -y parrot-desktop-kde ;;
+                parrot-mate) apt-get install -y parrot-desktop-mate ;;
+                parrot-xfce) apt-get install -y parrot-desktop-xfce ;;
+                parrot-gnome) apt-get install -y parrot-desktop-gnome ;;
+                parrot-i3) apt-get install -y parrot-desktop-i3 ;;
+            esac
+            ;;
+        *)
+            if [[ "$DESKTOP" == "skolelinux" ]]; then
+                apt-get install -y education-desktop-other education-standalone
+            else
+                apt-get install -y task-${DESKTOP}-desktop
+            fi
+            ;;
+    esac
+fi
+
+# --- Metapaquetes de la distribución (Kali / Parrot) ---
+if [[ -n "$DISTRO_META_PKGS" ]]; then
+    echo "Instalando metapaquetes de la distribución ($DISTRO_EDITION)..."
+    for mp in $DISTRO_META_PKGS; do
+        echo "Instalando metapaquete: \$mp"
+        apt-get install -y \$mp || echo "Advertencia: no se pudo instalar \$mp"
+    done
 fi
 
 if [[ -n "$EXTREPOS" && "$EXTREPOS" != "n" && "$EXTREPOS" != "no" ]]; then

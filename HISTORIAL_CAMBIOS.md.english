@@ -2,6 +2,35 @@
 
 This document details the evolution of the `create_vm.sh` script and the tasks performed in the project.
 
+## [1.7.3] - 2026-10-14
+### Added
+- **Parrot Security Support**: The script can now build virtual machines of the **Parrot OS** security suite. Editions: **Security** (full offensive toolkit, default), **Home**, **Core** and **Hack The Box**. Desktop environments: KDE, MATE, XFCE, GNOME, LXQt and i3.
+- **Official keyrings for Debian derivatives**: Automatic download and installation of the official Kali and Parrot APT keyrings (`debootstrap --keyring` plus the guest `/etc/apt/trusted.gpg.d`).
+- **Parrot rolling suite handling**: Uses the `parrot` rolling suite (currently "Echo") plus the `-updates`, `-security` and `-backports` components, with `main contrib non-free non-free-firmware`.
+- **Debian version selection**: Choose between the current stable release (auto-detected), bookworm, bullseye, buster, testing or sid.
+
+### Modified
+- **Kali editions**: Added the installation-type selector (Default, Large, Everything, Headless, Core and Purple) and completed the Kali desktop list (XFCE, GNOME, KDE, MATE, LXDE, i3, Enlightenment).
+- **Desktop selection menu**: Rebuilt cleanly per distribution (Ubuntu/Debian/Kali/Parrot), fixing duplicated and mis-numbered options.
+- **Argument validation**: Added validation for `--os` (ubuntu/debian/kali/parrot) and `--hyp`; added the `--edition` option.
+- **Dependency install**: Failures while installing host dependencies are no longer fatal (warn and continue).
+- **Codename handling**: `fetch_latest_versions` no longer overwrites a user-selected codename.
+- **Distro-aware mirrors**: Mirror helpers return the official mirror for Kali and Parrot.
+
+### Fixed
+- **Critical syntax error**: The desktop selection block was missing an `fi`, which produced an "unexpected end of file" error and prevented the script from running at all.
+- **Undefined `$SKOLA` variable**: Removed the stray references; Debian Edu (Skolelinux) is now selected explicitly.
+- **Hypervisor menu**: No longer re-prompts when `--hyp vbox` is passed.
+
+## [1.7.2] - 2026-10-13
+### Added
+- **Kali Linux Support**: Creation of Kali Rolling virtual machines with a selection of desktop environments.
+- **Legacy Ubuntu Support**: Ability to specify an unsupported/custom Ubuntu codename, with a warning.
+- **Additional desktops**: Debian MATE and Cinnamon.
+
+### Modified
+- **Vagrant and QEMU**: Existing support documented (no functional change).
+
 ## [1.7.1] - 2026-10-13
 ### Added
 - **Mirror Cache System**: Implementation of local cache to store the fastest mirror found, avoiding redundant testing in subsequent runs.
