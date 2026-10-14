@@ -1,0 +1,86 @@
+# Change History - Virtual Machine Creator Marca Acme
+
+This document details the evolution of the `create_vm.sh` script and the tasks performed in the project.
+
+## [1.7.1] - 2026-10-13
+### Added
+- **Mirror Cache System**: Implementation of local cache to store the fastest mirror found, avoiding redundant testing in subsequent runs.
+- **Parallel Mirror Testing**: Optimization of mirror testing by reducing the number of candidates from 20 to 10, reducing selection time by approximately 70%.
+- **Wallhaven Download Improvements**: Added retry logic (retries) and image format filtering (.jpg, .png, .gif, .webp) to prevent failed downloads and ensure only valid image files are saved.
+- **Argument Parsing Input Validation**: Real-time validation for --ram, --cpucores and --disk immediately after user input.
+- **GRUB Variable Expansion Fix**: Solved the problem where `$1` inside the chroot script did not expand correctly the device parameter. Now includes an explanatory comment in the code.
+- **Flatpak ID Detection Improvement**: Enhanced logic to properly distinguish between complete Flatpak IDs and package names, avoiding incorrect descriptive searches.
+- **Improved Error Handling**: Better error handling in mirror selection, Flatpak installation and wallpaper downloads.
+
+### Modified
+- **Argument Structure**: Added validation of hypervisors, operating systems and positive numeric values in the argument parsing --name, --os, --hyp, --ram, --cpucores and --disk.
+- **Password Cleanup**: Improved password management using `read -s` and strength validation.
+- **Function Refactoring**: Mirror selection functions (`find_fastest_mirror`, `find_fastest_mirror_parallel`) now use cache and have better `curl` error handling.
+
+### Correction
+- **GRUB `$1` Expansion Error**: Fixed the problem where `$1` in the `grub-install` line expanded at the time of writing the script instead of executing in chroot. An explanatory comment was added.
+- **Variable Handling in Heredocs**: Adjusted `$p` and `$initial_flags` variables in Flatpak and Snaps sections to ensure correct expansion when executed in the VM.
+
+## [1.7.0] - 2026-05-18
+### Added
+- **Anti-Blocking Services System (Proposal 1)**: Implementation of `policy-rc.d` to guarantee absolute stability during the construction phase (`chroot`).
+  - **Hang Prevention**: Avoids services like `ModemManager`, `MySQL` or `Apache` attempting to start within the enjailed environment, which caused infinite blocks in Hyper-V and other environments.
+  - **Installation Isolation**: Ensures the `apt-get install` process focuses solely on unpacking and configuring files, delegating service startup to the VM's first real boot.
+- **Multidisciplinary Documentation (v2)**: Total renewal of the README and Technical Documentation focused on socioprofessional inclusion.
+  - **Technical Initiation**: Guides specific for Students of Systems, Programming, Cybersecurity and Microinformatics (SMR/ASIR/DAM/DAW).
+  - **Creative Resistance**: Section dedicated to illustrators, designers and video editors who migrate to Linux for cost savings and old hardware.
+  - **Windows-Linux Bridge**: Smooth landing manual for users leaving proprietary ecosystems.
+  - **Academic and Professional Bibliography**: Inclusion of technical consultation sources and creative software manuals (Krita, Blender, OBS) in all documents.
+
+### Modified
+- **Dependency Logic**: Improvement in virtual package detection and fallback providers.
+
+## [1.6.1] - 2026-05-17
+### Corrected
+- **Virtual Packages Failure**: The critical error that prevented installation of `qemu-user-static` in modern distributions (such as Ubuntu 26.04 "Resolute") has been solved.
+  - **Fallback Logic**: The script now detects if `qemu-user-static` is a virtual package and automatically attempts installation of its providers (`qemu-user-binfmt` or `qemu-user-binfmt-hwe`).
+  - **Binary Detection**: Improved dependency verification to check the real existence of binaries in `/usr/bin/` before attempting a redundant installation.
+
+## [1.6.0] - 2026-05-17
+### Added
+- **Multi-Hypervisor Expansion (7 formats)**: Native support for **RAW**, **RootFS**, **Vagrant** (Libvirt) and **Hyper-V** (VHDX), in addition to the original ones.
+- **Advanced Netplan Support**: Implementation of dynamic renderers (`networkd` for servers, `NetworkManager` for desktops) in Ubuntu.
+- **Vagrant Boxes**: Automatic generation of `metadata.json` and `Vagrantfile` files for immediate laboratory deployment.
+
+## [1.5.1] - 2026-05-13
+### Corrected
+- **Debian Network Stability**: Improvement of the `/etc/network/interfaces` configuration to avoid blocks during boot.
+- **Device Loop Management**: Refactoring of the `cleanup trap` system to ensure device release in case of error.
+
+## [1.5.0] - 2026-05-08
+### Added
+- **Smart Snap (First Boot)**: Creation of a temporary `systemd` service that installs Snaps on first boot, solving the `chroot` limitation.
+- **extrepo Integration**: Support for safely enabling external repositories (e.g.: VSCode, Signal).
+- **Multi-Query Wallhaven Downloads**: Capacity to search and download wallpapers from multiple categories simultaneously.
+
+## [1.4.0] - 2026-05-07
+### Added
+- **Bootstrap Construction Engine**: Transition from an ISO-based system to direct package injection, allowing total customization from scratch.
+- **Desktop Selector**: Support for GNOME, KDE, XFCE, LXDE, LXQt, Budgie, MATE, Unity and educational/multimedia flavors.
+- **Compression Management**: Options to package results in ZIP, RAR and 7z with integrity verification.
+
+## [1.3.0] - 2026-05-07
+### Added
+- **Wallhaven API**: Initial integration for automated visual resource download based on tags.
+- **Local Wallpaper Management**: Capacity to inject wallpapers from a host path to the VM.
+- **Verbose Mode**: Implementation of detailed debugging (`set -x`) for technical problem resolution.
+
+## [1.2.0] - 2026-05-07
+### Added
+- **Initial Multi-Hypervisor Architecture**: Support for **VirtualBox**, **VMware** and **QEMU**.
+- **Automatic Disk Conversion**: Use of `qemu-img` and `VBoxManage` to export VDI, VMDK and QCOW2 formats.
+
+## [1.1.0] - 2026-05-06
+### Added
+- **Mirror Optimization**: Algorithms for detecting mirrors closer by geolocation and parallel latency testing.
+- **User Personalization**: Inclusion of prompts to define custom users and passwords (SUDO by default).
+
+## [1.0.0] - 2026-05-06
+### Added
+- **MVP (Minimum Viable Product)**: Script base automatized for the creation of Ubuntu/Debian virtual machines through generation of auto-installation ISOs.
+- **Directory Structure**: Definition of `vms`, `configs` and `isos` folders.
