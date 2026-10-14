@@ -18,6 +18,10 @@ The `create_vm.sh` script implements a layered build logic, designed to be resil
     Triple verification logic is used to ensure critical tools like `qemu-img` or `debootstrap` are present, including fallback systems for virtual packages in modern Ubuntu versions.
 
 *   **Smart Snap System:**
+*   **QEMU Support:** Converts RAW disk images to QCOW2 format for efficient storage and compatibility with KVM/libvirt.
+*   **Vagrant Support:** Creates Vagrant boxes compatible with libvirt driver, including metadata.json and Vagrantfile for easy deployment.
+
+*   **Smart Snap System:**
     Implements a "delayed post-installation" service (`acme-first-boot.service`) that solves the impossibility of installing Snaps inside a `chroot` without mounted `squashfs` file systems.
 
 *   **Mirror Caching:**

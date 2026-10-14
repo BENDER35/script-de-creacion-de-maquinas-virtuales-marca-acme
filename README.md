@@ -24,6 +24,10 @@ This tool allows creating customized (Debian/Ubuntu) virtual machine images full
 *   **Anti-Blocking `policy-rc.d` System:** Guarantees that installation never stops due to rebel services (like `ModemManager`). **Absolute stability in Hyper-V and virtualized environments**. Features **color-coded logging** for better visual feedback during execution (Red for errors, Yellow for warnings, Green for info, Cyan for debug).
 *   **Smart Dependency Management:** Detection of virtual packages and fallback providers (e.g.: `qemu-user-binfmt`).
 *   **Professional Multi-Format:** Support for **VirtualBox**, **VMware**, **QEMU**, **RAW**, **RootFS**, **Vagrant** and **Hyper-V**.
+*   **QEMU Support:** Converts RAW images to QCOW2 format for efficient virtual machine storage.
+*   **Vagrant Support:** Creates Vagrant boxes with metadata.json and Vagrantfile for libvirt/KVM provider.
+
+*   **Intelligent Snap Installation:**
 *   **Intelligent Snap Installation:** Automatic detection of `--classic` requirements for creative software.
 *   **Mirror Caching:** Caches the fastest mirror found to speed up subsequent runs.
 *   **Parallel Mirror Testing:** Finds the fastest mirror through parallel network testing, reducing selection time by approximately 70%.
