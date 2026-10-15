@@ -1,9 +1,9 @@
 # VM-Acme: Virtual Machine Generator for Vocational Training and University
 
-![Version](https://img.shields.io/badge/version-1.7.3-blue.svg)
+![Version](https://img.shields.io/badge/version-1.9.0-blue.svg)
 ![Field](https://img.shields.io/badge/purpose-Educational/Systems/Creative-green.svg)
 
-This tool allows creating customized (Debian/Ubuntu/Kali/Parrot) virtual machine images fully automated. It is a pedagogical and professional resource designed to democratize access to technology, ideal for those seeking a powerful and free alternative to proprietary systems.
+This tool allows creating customized (Debian/Ubuntu/Kali/Parrot/MX Linux/Linux Mint/LMDE) virtual machine images fully automated. It is a pedagogical and professional resource designed to democratize access to technology, ideal for those seeking a powerful and free alternative to proprietary systems.
 
 ## 🎯 User Profiles
 
@@ -19,7 +19,7 @@ This tool allows creating customized (Debian/Ubuntu/Kali/Parrot) virtual machine
     *   **Old Hardware:** Give a second life to that equipment Windows considers "obsolete". Linux flies where other systems crawl.
     *   **Professional Software:** Use **Krita** for illustration, **Blender** for 3D, **Kdenlive** for video editing and **OBS Studio** for your broadcasts.
 
-## 🚀 Key Features (v1.7.3)
+## 🚀 Key Features (v1.9.0)
 
 *   **Anti-Blocking `policy-rc.d` System:** Guarantees that installation never stops because of rebel services (like `ModemManager`). **Absolute stability in Hyper-V and virtualized environments**. Features **color-coded logging** for better visual feedback during execution (Red for errors, Yellow for warnings, Green for info, Cyan for debug).
 *   **Smart Dependency Management:** Detection of virtual packages and fallback providers (e.g.: `qemu-user-binfmt`). Host dependency failures are non-fatal.
@@ -32,9 +32,14 @@ This tool allows creating customized (Debian/Ubuntu/Kali/Parrot) virtual machine
 *   **Parallel Mirror Testing:** Finds the fastest mirror through parallel network testing, reducing selection time by approximately 70%.
 *   **Legacy Ubuntu Support:** Allows creating Ubuntu virtual machines even from versions that no longer have official support. The script lets you specify a custom codename and issues a warning if the version has no official support.
 *   **Debian Version Selection:** Choose between the current stable release, bookworm, bullseye, buster, testing or sid.
-*   **Kali Linux Support:** Create virtual machines with Kali Linux, the leading penetration testing distribution. Includes installation type selection (Default, Large, Everything, Headless, Core and Purple) and desktop environments (XFCE, GNOME, KDE, MATE, LXDE, i3 and Enlightenment).
+*   **Kali Linux Support:** Create virtual machines with Kali Linux, the leading penetration testing distribution. Includes installation type selection (Default, Large, Everything, Headless, Core and **Purple** — the defensive variant with detection, response and recovery tooling) and desktop environments (XFCE, GNOME, KDE, MATE, LXDE, i3 and Enlightenment).
 *   **Parrot Security Support:** Create virtual machines of the **Parrot OS** security suite. Includes the **Security** edition (full offensive toolkit, default), **Home**, **Core** and **Hack The Box**, with KDE, MATE, XFCE, GNOME and i3 desktops. The official Parrot keyring is downloaded and installed automatically.
 *   **Official Kali and Parrot Keyrings:** The script fetches and integrates the official signing keys of these Debian derivatives (both in `debootstrap` and in the guest system) so that APT works without warnings.
+*   **MX Linux Support:** Create virtual machines of **MX Linux** (based on Debian Stable, currently _trixie_), one of the most popular and lightweight distributions available. Includes the **XFCE** (default), **KDE Plasma**, **Fluxbox** and **AHS** (Advanced Hardware Support) editions, with XFCE, KDE, Fluxbox, MATE, GNOME, Cinnamon and LXQt desktops. It automatically adds the community repository (mxrepo.com), downloads and integrates the official `mx25-archive-keyring`, and deploys MX's own tools and applications (`mx-system`, `mx-tools`, `mx-welcome`, `mx25-artwork`, `mx-apps`).
+*   **Official MX Linux Keyring:** Downloads the `mx25-archive-keyring` package, extracts the signing key and integrates it into the guest system (`/etc/apt/trusted.gpg.d` and `/usr/share/keyrings`) to validate the mxrepo.com repository.
+*   **Linux Mint Support (`mint`):** Create virtual machines of **Linux Mint** (Ubuntu 24.04 _noble_ base), the most popular and newcomer-friendly desktop distribution. Includes the **Cinnamon** (default), **MATE** and **XFCE** editions. It automatically adds the official Mint repository (`packages.linuxmint.com`) alongside Ubuntu's, downloads and integrates the `linuxmint-keyring`, and deploys the `mint-meta-core`, `mint-meta-codecs` and `mint-meta-<desktop>` metapackages.
+*   **Linux Mint Debian Edition Support (`lmde`):** Create virtual machines of **LMDE 7 "Gigi"** (Debian 13 _trixie_ base), the Linux Mint variant with no Ubuntu dependency. Includes the **Cinnamon** (default) edition and the option of XFCE/MATE through the Debian tasks. Adds the Mint repository, its keyring and Mint's base packages.
+*   **Network support for Linux Mint and LMDE:** Like MX Linux, the Mint editions install and configure **NetworkManager** to manage networking from first boot.
 
 ## 📘 Beginner and Professional Guide
 
@@ -62,6 +67,18 @@ sudo ./create_vm.sh --name estudio_arte --os ubuntu --desktop xfce --apt krita,g
 
 # Example: Create a pentesting lab with Parrot Security
 sudo ./create_vm.sh --name lab_pentest --os parrot --edition security --desktop kde --ram 4096
+
+# Example: Create a lightweight workstation with MX Linux
+sudo ./create_vm.sh --name mx_workstation --os mx --edition xfce --desktop mx-xfce --ram 2048
+
+# Example: Create a Linux Mint (Cinnamon) desktop to migrate from Windows
+sudo ./create_vm.sh --name mint_workstation --os mint --desktop mint-cinnamon --ram 3072
+
+# Example: Create a LMDE 7 (Debian Edition) desktop with Cinnamon
+sudo ./create_vm.sh --name lmde_workstation --os lmde --desktop lmde-cinnamon --ram 3072
+
+# Example: Create a defensive lab with Kali Linux Purple
+sudo ./create_vm.sh --name purple_lab --os kali --edition purple --desktop kali-xfce --ram 4096
 ```
 
 ## 📚 Bibliography and Learning Resources

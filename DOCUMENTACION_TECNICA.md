@@ -2,7 +2,7 @@
 
 Esta documentación está pensada como guía avanzada para estudiantes de informática, migrantes de Windows y profesionales creativos que quieran optimizar su flujo de trabajo en Linux.
 
-## 1. Arquitectura y Robustez (v1.7.3)
+## 1. Arquitectura y Robustez (v1.9.0)
 
 El script `create_vm.sh` implementa una lógica de construcción por capas, diseñada para resistir cambios en las distribuciones anfitrionas e invitadas.
 
@@ -37,10 +37,29 @@ El script `create_vm.sh` implementa una lógica de construcción por capas, dise
 
 *   **Soporte Parrot Security (v1.7.3):** El script puede construir máquinas virtuales de la suite de seguridad **Parrot OS**. Soporta las ediciones **Security** (kit ofensivo completo, por defecto), **Home**, **Core** y **Hack The Box**, con los escritorios KDE, MATE, XFCE, GNOME e i3.
 
+*   **Soporte MX Linux (v1.8.0):** El script puede construir máquinas virtuales de **MX Linux**, la distribución basada en Debian Stable (actualmente `trixie`) más popular por su ligereza. El bootstrap se realiza contra un mirror de Debian y después se añade el repositorio de la comunidad MX (`mxrepo.com`).
+    *   **Ediciones:** **XFCE** (predeterminada), **KDE Plasma**, **Fluxbox** y **AHS** (Advanced Hardware Support).
+    *   **Escritorios:** XFCE, KDE, Fluxbox, MATE, GNOME, Cinnamon y LXQt.
+    *   **Paquetes propios:** `mx-system`, `mx-tools`, `mx-welcome`, `mx-welcome-data`, `mx25-artwork` y `mx-apps` (o `mx-apps-kde` / `mx-apps-fluxbox`).
+    *   **Red:** NetworkManager se instala y habilita por defecto.
+
+*   **Soporte Linux Mint (v1.9.0):** El script puede construir máquinas virtuales de **Linux Mint** (base Ubuntu 24.04 `noble`). El bootstrap se hace contra un mirror de Ubuntu y después se añade el repositorio oficial de Mint (`packages.linuxmint.com`, suite `zena`).
+    *   **Ediciones:** **Cinnamon** (predeterminada), **MATE** y **XFCE** (`mint-meta-cinnamon`, `mint-meta-mate`, `mint-meta-xfce`).
+    *   **Paquetes base:** `mint-meta-core` y `mint-meta-codecs`.
+    *   **Red:** NetworkManager se instala y habilita por defecto.
+
+*   **Soporte LMDE - Linux Mint Debian Edition (v1.9.0):** El script puede construir máquinas virtuales de **LMDE 7 "Gigi"** (base Debian 13 `trixie`). El bootstrap se hace contra un mirror de Debian y después se añade el repositorio de Mint (suite `gigi`).
+    *   **Ediciones:** **Cinnamon** (predeterminada) y opciones **XFCE**/**MATE** mediante `task-xfce-desktop` / `task-mate-desktop`.
+    *   **Red:** NetworkManager se instala y habilita por defecto.
+
 *   **Keyrings oficiales para derivados de Debian:** Para Kali y Parrot se descarga la clave oficial de firma de APT del fabricante (`archive.kali.org` y `deb.parrot.sh`) y se usa en dos puntos:
     1.  **`debootstrap --keyring`**, para verificar el sistema base durante el bootstrap.
     2.  **`/etc/apt/trusted.gpg.d`** dentro del invitado, para que `apt update` funcione sin avisos.
     Como las suites de Parrot y Kali no tienen script propio de `debootstrap`, el script reutiliza el de `sid` (Debian inestable), que es la base sobre la que se construyen.
+
+*   **Keyring oficial de MX Linux (v1.8.0):** Se descarga el paquete `mx25-archive-keyring`, se extrae `/usr/share/keyrings/mx-25-archive-keyring.gpg` y se integra tanto en `/etc/apt/trusted.gpg.d` como en `/usr/share/keyrings` del invitado. El bootstrap de MX se verifica con la keyring estándar de Debian (ya que la base es Debian); si la descarga de la keyring de MX falla, el repositorio se marca con `[trusted=yes]` como respaldo.
+
+*   **Keyring oficial de Linux Mint (v1.9.0):** Se descarga el paquete `linuxmint-keyring`, se extrae `/usr/share/keyrings/linuxmint-keyring.gpg` y se integra tanto en `/etc/apt/trusted.gpg.d` como en `/usr/share/keyrings` del invitado. El bootstrap de Mint/LMDE se verifica con la keyring de Ubuntu/Debian respectivamente; si la descarga falla, el repositorio de Mint se marca con `[trusted=yes]` como respaldo.
 
 ## 2. Perfil de Orientación
 
@@ -78,13 +97,15 @@ El script `create_vm.sh` implementa una lógica de construcción por capas, dise
 11. **DistroWatch:** [Base de datos de distribuciones Linux](https://distrowatch.com/).
 12. **Arch Wiki:** Referencia técnica universal (también para usuarios de Debian/Ubuntu). [wiki.archlinux.org](https://wiki.archlinux.org/).
 
-## 4. Lo Más Destacado del Historial (v1.7.3)
+## 4. Lo Más Destacado del Historial (v1.9.0)
 
+*   **Soporte Linux Mint y LMDE:** Añadida la capacidad de crear máquinas virtuales de Linux Mint (base Ubuntu, ediciones Cinnamon/MATE/XFCE) y de Linux Mint Debian Edition (base Debian, Cinnamon/XFCE/MATE), con el repositorio oficial de Mint, su keyring y sus paquetes base.
+*   **Soporte MX Linux:** Añadida la capacidad de crear máquinas virtuales de MX Linux (ediciones XFCE, KDE, Fluxbox y AHS) con el repositorio de la comunidad, la keyring oficial y los paquetes propios de MX.
 *   **Soporte Parrot Security:** Añadida la capacidad de crear máquinas virtuales de la suite de seguridad Parrot OS (ediciones Security, Home, Core y Hack The Box) con múltiples escritorios.
 *   **Ediciones de Kali:** Añadido el selector de tipo de instalación (Default, Large, Everything, Headless, Core y Purple) y completada la lista de escritorios.
 *   **Corrección crítica:** Reparado un error de sintaxis (un `fi` ausente) en el bloque de selección de escritorio que impedía que el script arrancara.
-*   **Menú de escritorios rehecho:** El menú se genera limpiamente por distribución (Ubuntu/Debian/Kali/Parrot), eliminando opciones duplicadas y mal numeradas y la variable `$SKOLA` sin definir.
-*   **Validación de argumentos:** Añadida validación para `--os` (ubuntu/debian/kali/parrot) y `--hyp`.
+*   **Menú de escritorios rehecho:** El menú se genera limpiamente por distribución (Ubuntu/Debian/Kali/Parrot/MX), eliminando opciones duplicadas y mal numeradas y la variable `$SKOLA` sin definir.
+*   **Validación de argumentos:** Añadida validación para `--os` (ubuntu/debian/kali/parrot/mx) y `--hyp`.
 *   **Respeto del codename:** `fetch_latest_versions` ya no sobrescribe el codename elegido por el usuario.
 *   **Sistema de caché de mirrors:** Añadido mecanismo de caché para almacenar el mirror más rápido, evitando testees redundantes.
 *   **Pruebas paralelas de mirrors:** Selección optimizada limitando el testeo a los 10 mejores candidatos, reduciendo el tiempo en un 70% aproximadamente.

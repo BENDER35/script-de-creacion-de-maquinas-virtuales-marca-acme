@@ -1,9 +1,9 @@
 # VM-Acme: Generador de Laboratorios Virtuales para FP y Universidad
 
-![Version](https://img.shields.io/badge/version-1.7.3-blue.svg)
+![Version](https://img.shields.io/badge/version-1.9.0-blue.svg)
 ![Field](https://img.shields.io/badge/fines-Educativos/Sistemas/Creativos-green.svg)
 
-Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu/Kali/Parrot) personalizadas de forma totalmente automatizada. Es un recurso pedagógico y profesional diseñado para democratizar el acceso a la tecnología, ideal para quienes buscan una alternativa potente y gratuita a los sistemas propietarios.
+Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu/Kali/Parrot/MX Linux/Linux Mint/LMDE) personalizadas de forma totalmente automatizada. Es un recurso pedagógico y profesional diseñado para democratizar el acceso a la tecnología, ideal para quienes buscan una alternativa potente y gratuita a los sistemas propietarios.
 
 ## 🎯 Perfiles de Usuario
 
@@ -19,7 +19,7 @@ Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu/K
     *   **Hardware Antiguo:** Dale una segunda vida a ese equipo que Windows considera "obsoleto". Linux vuela donde otros sistemas se arrastran.
     *   **Software Profesional:** Usa **Krita** para ilustración, **Blender** para 3D, **Kdenlive** para edición de vídeo y **OBS Studio** para tus directos.
 
-## 🚀 Características Principales (v1.7.3)
+## 🚀 Características Principales (v1.9.0)
 
 *   **Sistema Anti-Bloqueo `policy-rc.d`:** Garantiza que la instalación nunca se detenga por servicios rebeldes (como `ModemManager`). **Estabilidad absoluta en Hyper-V y entornos virtualizados**. Incorpora **registro con colores** para una mejor retroalimentación visual durante la ejecución (Rojo para errores, Amarillo para advertencias, Verde para info, Cyan para modo debug).
 *   **Gestión Inteligente de Dependencias:** Detección de paquetes virtuales y proveedores de fallback (ej: `qemu-user-binfmt`).
@@ -31,9 +31,14 @@ Esta herramienta permite crear imágenes de máquinas virtuales (Debian/Ubuntu/K
 *   **Caché de Mirrors:** Sistema de caché para almacenar el mirror más rápido encontrado, evitando testees redundantes en ejecuciones subsiguientes.
 *   **Pruebas Paralelas de Mirrors:** Optimización del testeo de mirrors reduciendo el número de candidates de 20 a 10, reduciendo el tiempo de selección en aproximadamente un 70%.
 *   **Soporte de Ubuntu Legacy:** Permite crear máquinas virtuales de Ubuntu incluso en versiones que ya no tienen soporte oficial. El script permite especificar un codename personalizado y emite una advertencia si la versión no tiene soporte oficial.
-*   **Soporte Kali Linux:** Permite crear máquinas virtuales con Kali Linux, la distribución líder en pruebas de penetración. Selección de tipo de instalación (Default, Large, Everything, Headless, Core y Purple) y de escritorios (XFCE, GNOME, KDE, MATE, LXDE, i3 y Enlightenment).
+*   **Soporte Kali Linux:** Permite crear máquinas virtuales con Kali Linux, la distribución líder en pruebas de penetración. Selección de tipo de instalación (Default, Large, Everything, Headless, Core y **Purple** —la variante defensiva con herramientas de detección, respuesta y recuperación—) y de escritorios (XFCE, GNOME, KDE, MATE, LXDE, i3 y Enlightenment).
 *   **Soporte Parrot Security:** Permite crear máquinas virtuales de la suite de seguridad **Parrot OS**. Incluye las ediciones **Security** (kit ofensivo completo, por defecto), **Home**, **Core** y **Hack The Box**, con los escritorios KDE, MATE, XFCE, GNOME e i3. Descarga e instala automáticamente el keyring oficial de Parrot.
+*   **Soporte MX Linux:** Permite crear máquinas virtuales de **MX Linux** (basado en Debian Stable, actualmente _trixie_), una de las distribuciones más populares y ligeras del panorama Linux. Incluye las ediciones **XFCE** (predeterminada), **KDE Plasma**, **Fluxbox** y **AHS** (Advanced Hardware Support), y escritorios XFCE, KDE, Fluxbox, MATE, GNOME, Cinnamon y LXQt. Añade automáticamente el repositorio de la comunidad (mxrepo.com), descarga e integra el keyring oficial `mx25-archive-keyring` y despliega las herramientas y aplicaciones propias de MX (`mx-system`, `mx-tools`, `mx-welcome`, `mx25-artwork`, `mx-apps`).
 *   **Keyrings oficiales de Kali y Parrot:** El script obtiene e integra las claves de firma oficiales de estos derivados de Debian (tanto en `debootstrap` como en el sistema invitado) para que APT funcione sin avisos.
+*   **Keyring oficial de MX Linux:** Descarga el paquete `mx25-archive-keyring`, extrae la clave de firma y la integra en el sistema invitado (`/etc/apt/trusted.gpg.d` y `/usr/share/keyrings`) para validar el repositorio de mxrepo.com.
+*   **Soporte Linux Mint (`mint`):** Crea máquinas virtuales de **Linux Mint** (base Ubuntu 24.04 _noble_), la distribución de escritorio más popular y amigable para quienes vienen de Windows. Incluye las ediciones **Cinnamon** (predeterminada), **MATE** y **XFCE**. Añade automáticamente el repositorio oficial de Mint (`packages.linuxmint.com`) junto al de Ubuntu, descarga e integra el keyring `linuxmint-keyring` y despliega los metapaquetes `mint-meta-core`, `mint-meta-codecs` y `mint-meta-<escritorio>`.
+*   **Soporte Linux Mint Debian Edition (`lmde`):** Crea máquinas virtuales de **LMDE 7 "Gigi"** (base Debian 13 _trixie_), la variante de Linux Mint sin dependencia de Ubuntu. Incluye la edición **Cinnamon** (predeterminada) y la opción de XFCE/MATE mediante los task de Debian. Añade el repositorio de Mint, su keyring y los paquetes base de Mint.
+*   **Soporte de red para Linux Mint y LMDE:** Al igual que MX Linux, las ediciones de Mint instalan y configuran **NetworkManager** para gestionar la red desde el primer arranque.
 *   **Selección de versión Debian:** Permite elegir entre la versión estable actual, bookworm, bullseye, buster, testing o sid.
 
 ## 📘 Guía para Principiantes y Profesionales
@@ -62,6 +67,18 @@ sudo ./create_vm.sh --name estudio_arte --os ubuntu --desktop xfce --apt krita,g
 
 # Ejemplo: Crear un laboratorio de pentesting con Parrot Security
 sudo ./create_vm.sh --name lab_pentest --os parrot --edition security --desktop kde --ram 4096
+
+# Ejemplo: Crear una estación de trabajo ligera con MX Linux
+sudo ./create_vm.sh --name escritorio_mx --os mx --edition xfce --desktop mx-xfce --ram 2048
+
+# Ejemplo: Crear un escritorio Linux Mint (Cinnamon) para migrar desde Windows
+sudo ./create_vm.sh --name escritorio_mint --os mint --desktop mint-cinnamon --ram 3072
+
+# Ejemplo: Crear un escritorio LMDE 7 (Debian Edition) con Cinnamon
+sudo ./create_vm.sh --name escritorio_lmde --os lmde --desktop lmde-cinnamon --ram 3072
+
+# Ejemplo: Crear un laboratorio defensivo con Kali Linux Purple
+sudo ./create_vm.sh --name lab_purple --os kali --edition purple --desktop kali-xfce --ram 4096
 ```
 
 ## 📚 Bibliografía y Recursos de Aprendizaje

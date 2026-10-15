@@ -2,6 +2,40 @@
 
 This document details the evolution of the `create_vm.sh` script and the tasks performed in the project.
 
+## [1.9.0] - 2026-10-15
+### Added
+- **Linux Mint Support (`--os mint`)**: New operating system based on Ubuntu 24.04 (_noble_). The base system is bootstrapped from an Ubuntu mirror and the official Linux Mint repository (`packages.linuxmint.com`, suite `zena`) is layered on top.
+  - **Editions**: **Cinnamon** (default), **MATE** and **XFCE**, via the `mint-meta-cinnamon`, `mint-meta-mate` and `mint-meta-xfce` metapackages.
+  - **Mint base packages**: `mint-meta-core` and `mint-meta-codecs`.
+- **Linux Mint Debian Edition Support (`--os lmde`)**: New operating system based on Debian 13 (_trixie_). The base system is bootstrapped from a Debian mirror plus the Mint repository (suite `gigi`).
+  - **Editions**: **Cinnamon** (default) plus **XFCE**/**MATE** options supported by the Debian `task-*-desktop` tasks.
+- **Official Linux Mint keyring**: Downloads the `linuxmint-keyring` package, extracts `/usr/share/keyrings/linuxmint-keyring.gpg` and integrates it into the guest (`/etc/apt/trusted.gpg.d` and `/usr/share/keyrings`) to validate `packages.linuxmint.com`. If the download fails, the repo is marked `[trusted=yes]` as a fallback.
+- **Network support for Mint/LMDE**: They install and enable **NetworkManager** (with its GNOME applet), managing the interfaces from first boot.
+- **Kali Linux Purple**: Confirmed and documented support for the **Purple** edition (defensive variant) of Kali Linux, with its set of metapackages (`kali-tools-identify`, `-protect`, `-detect`, `-respond`, `-recover` and `kali-themes-purple`).
+- **`zips/` folder**: All of the project's ZIP packages are now centralised in the new `zips/` folder.
+
+### Modified
+- **Main menu**: Added options **6) Linux Mint** and **7) LMDE (Linux Mint Debian Edition)** to the operating system selector.
+- **Desktop selection**: Added the Mint- and LMDE-specific desktop menus and the `mint-<de>` / `lmde-<de>` normalisation.
+- **Argument validation**: `--os` now accepts `mint` and `lmde`; `--desktop` documents the `mint-<de>` and `lmde-<de>` prefixes.
+- **Mirror selection**: Mint uses Ubuntu mirrors (base) and LMDE uses Debian mirrors (base), keeping the Mint repository separate through `LM_MIRROR`/`LM_SUITE`.
+- **Guest tools (VirtualBox)**: The DKMS module is reserved for Kali, Parrot and Debian; Ubuntu and Mint use the system kernel and MX/LMDE the Debian kernel (which already ships `vboxguest`/`vboxsf`).
+
+## [1.8.0] - 2026-10-15
+### Added
+- **MX Linux Support**: The script can now build **MX Linux** virtual machines, the most popular Debian Stable-based distribution (currently `trixie`) thanks to its lightness and stability. It bootstraps from a Debian mirror and layers the MX community repository (`mxrepo.com`) on top.
+  - **Editions**: **XFCE** (default), **KDE Plasma**, **Fluxbox** and **AHS** (Advanced Hardware Support).
+  - **Desktop environments**: XFCE, KDE, Fluxbox, MATE, GNOME, Cinnamon and LXQt (plus the no-desktop option).
+  - **MX-specific packages**: Automatically installs `mx-system`, `mx-tools`, `mx-welcome`, `mx-welcome-data`, `mx25-artwork` and `mx-apps` (or `mx-apps-kde` / `mx-apps-fluxbox` depending on the desktop).
+- **Official MX Linux keyring**: Downloads the `mx25-archive-keyring` package, extracts `/usr/share/keyrings/mx-25-archive-keyring.gpg` and integrates the key into the guest (`/etc/apt/trusted.gpg.d` and `/usr/share/keyrings`) to validate the MX repository. If the download fails, the repo is marked `[trusted=yes]` as a fallback.
+- **Network support for MX**: Installs and configures **NetworkManager** (with its GNOME applet), marking the interfaces so NM manages them instead of `ifupdown`.
+
+### Modified
+- **Main menu**: Added option **5) MX Linux** to the operating system selector.
+- **Argument validation**: `--os` now accepts `mx` and `--edition` documents the MX editions.
+- **Guest tools (VirtualBox)**: For MX the mxrepo user-space tools are used (`virtualbox-guest-x11`, `virtualbox-guest-utils`) without `virtualbox-guest-dkms`, since the Debian kernel already ships the `vboxguest`/`vboxsf` modules and MX does not package the DKMS module.
+- **Mirror selection**: For MX, Debian mirrors are used (base system), keeping the MX repository separate through `MX_MIRROR` (default `http://mxrepo.com/mx/repo/`).
+
 ## [1.7.3] - 2026-10-14
 ### Added
 - **Parrot Security Support**: The script can now build virtual machines of the **Parrot OS** security suite. Editions: **Security** (full offensive toolkit, default), **Home**, **Core** and **Hack The Box**. Desktop environments: KDE, MATE, XFCE, GNOME, LXQt and i3.

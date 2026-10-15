@@ -2,7 +2,7 @@
 
 This documentation is designed to serve as an advanced guide for IT students, Windows migrants and creative professionals who want to optimize their workflow in Linux.
 
-## 1. Architecture and Robustness (v1.7.3)
+## 1. Architecture and Robustness (v1.9.0)
 
 The `create_vm.sh` script implements a layered build logic, designed to be resilient to changes in host and guest distributions.
 
@@ -37,10 +37,29 @@ The `create_vm.sh` script implements a layered build logic, designed to be resil
 
 *   **Parrot Security Support (v1.7.3):** The script can build **Parrot OS** security-suite virtual machines. It supports the **Security** (full offensive toolkit, default), **Home**, **Core** and **Hack The Box** editions, with KDE, MATE, XFCE, GNOME and i3 desktops.
 
+*   **MX Linux Support (v1.8.0):** The script can build **MX Linux** virtual machines, the most popular Debian Stable-based distribution (currently `trixie`) thanks to its lightness. The bootstrap runs against a Debian mirror and then the MX community repository (`mxrepo.com`) is added.
+    *   **Editions:** **XFCE** (default), **KDE Plasma**, **Fluxbox** and **AHS** (Advanced Hardware Support).
+    *   **Desktops:** XFCE, KDE, Fluxbox, MATE, GNOME, Cinnamon and LXQt.
+    *   **Native packages:** `mx-system`, `mx-tools`, `mx-welcome`, `mx-welcome-data`, `mx25-artwork` and `mx-apps` (or `mx-apps-kde` / `mx-apps-fluxbox`).
+    *   **Network:** NetworkManager is installed and enabled by default.
+
+*   **Linux Mint Support (v1.9.0):** The script can build **Linux Mint** virtual machines (Ubuntu 24.04 `noble` base). The bootstrap runs against an Ubuntu mirror and then the official Mint repository (`packages.linuxmint.com`, suite `zena`) is added.
+    *   **Editions:** **Cinnamon** (default), **MATE** and **XFCE** (`mint-meta-cinnamon`, `mint-meta-mate`, `mint-meta-xfce`).
+    *   **Base packages:** `mint-meta-core` and `mint-meta-codecs`.
+    *   **Network:** NetworkManager is installed and enabled by default.
+
+*   **LMDE - Linux Mint Debian Edition Support (v1.9.0):** The script can build **LMDE 7 "Gigi"** virtual machines (Debian 13 `trixie` base). The bootstrap runs against a Debian mirror and then the Mint repository (suite `gigi`) is added.
+    *   **Editions:** **Cinnamon** (default) plus **XFCE**/**MATE** options through `task-xfce-desktop` / `task-mate-desktop`.
+    *   **Network:** NetworkManager is installed and enabled by default.
+
 *   **Official keyrings for Debian derivatives:** For Kali and Parrot, the official APT signing key is downloaded from the vendor (`archive.kali.org` and `deb.parrot.sh`) and used in two places:
     1.  **`debootstrap --keyring`**, so the base system is verified during bootstrap.
     2.  **`/etc/apt/trusted.gpg.d`** inside the guest, so that `apt update` works without warnings.
     Because Parrot and Kali suites have no dedicated `debootstrap` script, the script reuses the `sid` (Debian unstable) bootstrap script, which is the base they build upon.
+
+*   **Official MX Linux keyring (v1.8.0):** The `mx25-archive-keyring` package is downloaded, `/usr/share/keyrings/mx-25-archive-keyring.gpg` is extracted, and the key is integrated into both `/etc/apt/trusted.gpg.d` and `/usr/share/keyrings` of the guest. The MX bootstrap is verified with the standard Debian keyring (since the base is Debian); if the MX keyring download fails, the repository is marked `[trusted=yes]` as a fallback.
+
+*   **Official Linux Mint keyring (v1.9.0):** The `linuxmint-keyring` package is downloaded, `/usr/share/keyrings/linuxmint-keyring.gpg` is extracted, and the key is integrated into both `/etc/apt/trusted.gpg.d` and `/usr/share/keyrings` of the guest. The Mint/LMDE bootstrap is verified with the Ubuntu/Debian keyring respectively; if the download fails, the Mint repository is marked `[trusted=yes]` as a fallback.
 
 ## 2. Guidance Profile
 
@@ -78,8 +97,10 @@ The `create_vm.sh` script implements a layered build logic, designed to be resil
 11. **DistroWatch:** [Linux distributions database](https://distrowatch.com/).
 12. **Arch Wiki:** Universal technical reference (even for Debian/Ubuntu users). [wiki.archlinux.org](https://wiki.archlinux.org/).
 
-## 4. Change Log Highlights (v1.7.3)
+## 4. Change Log Highlights (v1.9.0)
 
+*   **Linux Mint and LMDE Support:** Ability to build Linux Mint (Ubuntu base, Cinnamon/MATE/XFCE editions) and Linux Mint Debian Edition (Debian base, Cinnamon/XFCE/MATE) virtual machines, with the official Mint repository, its keyring and its base packages.
+*   **MX Linux Support:** Ability to build MX Linux virtual machines (XFCE, KDE, Fluxbox and AHS editions) with the community repository, the official keyring and MX's own packages.
 *   **Parrot Security Support:** Added the ability to build Parrot OS security-suite virtual machines (Security, Home, Core and Hack The Box editions) with multiple desktops.
 *   **Kali Editions:** Added the installation-type selector (Default, Large, Everything, Headless, Core and Purple) and completed the desktop list.
 *   **Critical Fix:** Repaired a syntax error (a missing `fi`) in the desktop-selection block that prevented the script from starting at all.

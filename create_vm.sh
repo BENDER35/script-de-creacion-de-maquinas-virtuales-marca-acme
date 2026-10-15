@@ -76,9 +76,12 @@ Creador de Máquinas Virtuales Marca Acme - Script de automatización para Siste
 Opciones:
   --help                Muestra esta ayuda.
   --name NOMBRE         Nombre de la VM (defecto: acme_vm_[timestamp]).
-  --os SO               Sistema operativo: ubuntu, debian, kali o parrot (defecto: ubuntu).
-  --edition EDICION     Edición/tipo para Kali o Parrot. Kali: default, large, everything,
+  --os SO               Sistema operativo: ubuntu, debian, kali, parrot, mx, mint o lmde
+                        (defecto: ubuntu). 'mint' = Linux Mint (base Ubuntu) y 'lmde' = Linux
+                        Mint Debian Edition (base Debian).
+  --edition EDICION     Edición/tipo para Kali, Parrot o MX. Kali: default, large, everything,
                         headless, core, purple. Parrot: security, home, core, htb.
+                        MX: xfce, kde, fluxbox, ahs. Mint/LMDE se eligen por escritorio.
   --hyp HYPERVISOR      Hypervisor: vbox, vmware, qemu, raw, rootfs, vagrant, hyperv (defecto: vbox).
   --ram MB              Cantidad de RAM en MB (defecto: 2048).
   --disk SIZE           Tamaño del disco (ej: 50G) (defecto: 50G).
@@ -87,7 +90,8 @@ Opciones:
   --pass PASS           Contraseña del usuario (defecto: tronco).
   --flatpak PKGS        Lista de paquetes Flatpak separados por comas (ej: vlc,spotify).
   --desktop DESKTOP     Escritorio: gnome, kde, xfce, lxde, lxqt, budgie, cinnamon, kylin,
-                        mate, edubuntu, ubuntustudio, skolelinux, kali-<de>, parrot-<de>, none.
+                        mate, edubuntu, ubuntustudio, skolelinux, kali-<de>, parrot-<de>,
+                        mx-<de>, mint-<de>, lmde-<de>, none.
   --mirror URL          URL del mirror personalizado.
   --verbose             Activa el modo de depuración (set -x).
 
@@ -117,6 +121,9 @@ TIMEZONE=$(cat /etc/timezone 2>/dev/null || echo "Europe/Madrid")
 VM_USER=""
 VM_PASS=""
 SELECTED_MIRROR=""
+MX_MIRROR="http://mxrepo.com/mx/repo/"
+LM_MIRROR="http://packages.linuxmint.com/"
+LM_SUITE=""
 WALLHAVEN_QUERY=""
 LOCAL_WP_DIR=""
 EXTREPOS=""
@@ -127,6 +134,8 @@ HYPERVISOR=""
 KEYRING_DIR=""
 BOOTSTRAP_KEYRING=""
 GUEST_KEYRING_NAME=""
+MX_GUEST_KEYRING=""
+LM_GUEST_KEYRING=""
 VERBOSE_MODE="n"
 
 # --- Argument Parsing ---
@@ -154,8 +163,8 @@ done
 # --- Validación de argumentos ---
 if [[ -n "$OS" ]]; then
     case "$OS" in
-        ubuntu|debian|kali|parrot) ;;
-        *) log "Sistema operativo no soportado: '$OS'. Use: ubuntu, debian, kali o parrot." "ERROR"; exit 1 ;;
+        ubuntu|debian|kali|parrot|mx|mint|lmde) ;;
+        *) log "Sistema operativo no soportado: '$OS'. Use: ubuntu, debian, kali, parrot, mx, mint o lmde." "ERROR"; exit 1 ;;
     esac
 fi
 if [[ -n "$HYPERVISOR" ]]; then
@@ -174,7 +183,7 @@ find_fastest_mirror() {
         kali) echo "http://http.kali.org/kali/"; return ;;
         parrot) echo "https://deb.parrot.sh/parrot/"; return ;;
     esac
-    if [[ "$os" == "ubuntu" ]]; then
+    if [[ "$os" == "ubuntu" || "$os" == "mint" ]]; then
         mirrors=($(curl -s http://mirrors.ubuntu.com/mirrors.txt | head -n 10))
         [[ ${#mirrors[@]} -eq 0 ]] && mirrors=("http://archive.ubuntu.com/ubuntu/" "http://es.archive.ubuntu.com/ubuntu/")
     else
@@ -194,7 +203,7 @@ find_fastest_mirror() {
             min_time=$time; fastest=$m
         fi
     done
-    [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
+    [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" || "$os" == "mint" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
     echo "$fastest"
 }
 
@@ -209,12 +218,12 @@ find_mirror_by_country() {
     
     if [[ -z "$country" || ${#country} -ne 2 ]]; then
         log "No se pudo detectar el país, usando mirror global." "WARNING"
-        [[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/"
+        [[ "$os" == "ubuntu" || "$os" == "mint" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/"
         return
     fi
     
     log "País detectado: $country"
-    if [[ "$os" == "ubuntu" ]]; then
+    if [[ "$os" == "ubuntu" || "$os" == "mint" ]]; then
         echo "http://${country}.archive.ubuntu.com/ubuntu/"
     else
         echo "http://ftp.${country}.debian.org/debian/"
@@ -230,14 +239,14 @@ find_fastest_mirror_parallel() {
         parrot) echo "https://deb.parrot.sh/parrot/"; return ;;
     esac
 
-    if [[ "$os" == "ubuntu" ]]; then
+    if [[ "$os" == "ubuntu" || "$os" == "mint" ]]; then
         mirrors=($(curl -s --connect-timeout 2 http://mirrors.ubuntu.com/mirrors.txt))
     else
         # Para Debian, usamos una lista de mirrors conocidos de alta velocidad
         mirrors=("http://deb.debian.org/debian/" "http://ftp.de.debian.org/debian/" "http://ftp.us.debian.org/debian/" "http://ftp.fr.debian.org/debian/" "http://ftp.es.debian.org/debian/" "http://mirror.hetzner.com/debian/")
     fi
     
-    [[ ${#mirrors[@]} -eq 0 ]] && mirrors=($([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/"))
+    [[ ${#mirrors[@]} -eq 0 ]] && mirrors=($([[ "$os" == "ubuntu" || "$os" == "mint" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/"))
 
     local tmp_results=$(mktemp)
     
@@ -255,7 +264,7 @@ find_fastest_mirror_parallel() {
     local fastest=$(sort -n "$tmp_results" | head -n 1 | awk '{print $2}')
     rm -f "$tmp_results"
     
-    [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
+    [[ -n "$fastest" ]] || fastest=$([[ "$os" == "ubuntu" || "$os" == "mint" ]] && echo "http://archive.ubuntu.com/ubuntu/" || echo "http://deb.debian.org/debian/")
     log "Mirror más rápido detectado: $fastest"
     echo "$fastest"
 }
@@ -277,6 +286,18 @@ fetch_latest_versions() {
             ;;
         parrot)
             OS_CODENAME="parrot"
+            ;;
+        mx)
+            # MX Linux se basa en Debian Stable (trixie = Debian 13)
+            OS_CODENAME="trixie"
+            ;;
+        mint)
+            # Linux Mint 22.x se basa en Ubuntu 24.04 (noble)
+            OS_CODENAME="noble"
+            ;;
+        lmde)
+            # LMDE 7 "Gigi" se basa en Debian 13 (trixie)
+            OS_CODENAME="trixie"
             ;;
         *)
             # Debian: codename de la rama estable actual
@@ -387,14 +408,24 @@ fi
 check_dependencies
 
 if [[ -z "$OS" ]]; then
-    echo "Sistema: 1) Ubuntu 2) Debian 3) Kali Linux 4) Parrot Security"
+    echo "Sistema: 1) Ubuntu 2) Debian 3) Kali Linux 4) Parrot Security 5) MX Linux 6) Linux Mint 7) LMDE (Linux Mint Debian Edition)"
     read -p "Opción [1]: " os_opt
     case $os_opt in
         2) OS="debian" ;;
         3) OS="kali" ;;
         4) OS="parrot" ;;
+        5) OS="mx" ;;
+        6) OS="mint" ;;
+        7) OS="lmde" ;;
         *) OS="ubuntu" ;;
     esac
+fi
+
+# Suite del repositorio de Linux Mint (Mint basado en Ubuntu / LMDE basado en Debian)
+if [[ "$OS" == "mint" ]]; then
+    LM_SUITE="zena"      # Linux Mint 22.3 (base Ubuntu Noble)
+elif [[ "$OS" == "lmde" ]]; then
+    LM_SUITE="gigi"      # LMDE 7 (base Debian Trixie)
 fi
 
 # --- Selección de versión / edición según el sistema ---
@@ -446,6 +477,17 @@ if [[ "$OS" == "parrot" && -z "$DISTRO_EDITION" ]]; then
     esac
 fi
 
+if [[ "$OS" == "mx" && -z "$DISTRO_EDITION" ]]; then
+    echo "Edición MX Linux: 1) XFCE (predeterminada, recomendada) 2) KDE Plasma 3) Fluxbox 4) AHS (kernel más reciente)"
+    read -p "Opción [1]: " mx_ed
+    case $mx_ed in
+        2) DISTRO_EDITION="kde" ;;
+        3) DISTRO_EDITION="fluxbox" ;;
+        4) DISTRO_EDITION="ahs" ;;
+        *) DISTRO_EDITION="xfce" ;;
+    esac
+fi
+
 read -p "RAM (MB) [$VM_RAM]: " input_ram; [[ -n "$input_ram" ]] && VM_RAM="$input_ram"
 read -p "Disco (ej: 50G) [$VM_DISK_SIZE]: " input_disk; [[ -n "$input_disk" ]] && VM_DISK_SIZE="$input_disk"
 # Normalizar: quitar espacios y cambiar coma por punto decimal para herramientas (qemu-img, etc)
@@ -491,6 +533,9 @@ if [[ -z "$SELECTED_MIRROR" ]]; then
                 ubuntu) SELECTED_MIRROR="http://archive.ubuntu.com/ubuntu/" ;;
                 kali) SELECTED_MIRROR="http://http.kali.org/kali/" ;;
                 parrot) SELECTED_MIRROR="https://deb.parrot.sh/parrot/" ;;
+                mx) SELECTED_MIRROR="http://deb.debian.org/debian/" ;;
+                mint) SELECTED_MIRROR="http://archive.ubuntu.com/ubuntu/" ;;
+                lmde) SELECTED_MIRROR="http://deb.debian.org/debian/" ;;
                 *) SELECTED_MIRROR="http://deb.debian.org/debian/" ;;
             esac
             ;;
@@ -586,14 +631,54 @@ if [[ -z "$DESKTOP" ]]; then
                 *) DESKTOP="parrot-kde" ;;
             esac
             ;;
+        mx)
+            echo "Escritorio MX Linux: 1) XFCE (predeterminado) 2) KDE 3) Fluxbox 4) MATE 5) GNOME 6) Cinnamon 7) LXQt 8) Ninguno (headless)"
+            read -p "Selecciona escritorio [1]: " desk_opt
+            case $desk_opt in
+                2) DESKTOP="mx-kde" ;;
+                3) DESKTOP="mx-fluxbox" ;;
+                4) DESKTOP="mx-mate" ;;
+                5) DESKTOP="mx-gnome" ;;
+                6) DESKTOP="mx-cinnamon" ;;
+                7) DESKTOP="mx-lxqt" ;;
+                8) DESKTOP="none" ;;
+                *) DESKTOP="mx-xfce" ;;
+            esac
+            ;;
+        mint)
+            echo "Escritorio Linux Mint: 1) Cinnamon (predeterminado) 2) MATE 3) XFCE 4) Ninguno (headless)"
+            read -p "Selecciona escritorio [1]: " desk_opt
+            case $desk_opt in
+                2) DESKTOP="mint-mate" ;;
+                3) DESKTOP="mint-xfce" ;;
+                4) DESKTOP="none" ;;
+                *) DESKTOP="mint-cinnamon" ;;
+            esac
+            ;;
+        lmde)
+            echo "Escritorio LMDE: 1) Cinnamon (predeterminado) 2) XFCE 3) MATE 4) Ninguno (headless)"
+            read -p "Selecciona escritorio [1]: " desk_opt
+            case $desk_opt in
+                2) DESKTOP="lmde-xfce" ;;
+                3) DESKTOP="lmde-mate" ;;
+                4) DESKTOP="none" ;;
+                *) DESKTOP="lmde-cinnamon" ;;
+            esac
+            ;;
     esac
 fi
 
-# Normalizar nombres de escritorio para Kali/Parrot (permite --desktop kde ademas de kali-kde/parrot-kde)
+# Normalizar nombres de escritorio para Kali/Parrot/MX/Mint/LMDE (permite --desktop kde ademas de kali-kde/parrot-kde/mx-kde/mint-kde/lmde-kde)
 if [[ "$OS" == "kali" && "$DESKTOP" != "none" && "$DESKTOP" != kali-* ]]; then
     DESKTOP="kali-$DESKTOP"
 elif [[ "$OS" == "parrot" && "$DESKTOP" != "none" && "$DESKTOP" != parrot-* ]]; then
     DESKTOP="parrot-$DESKTOP"
+elif [[ "$OS" == "mx" && "$DESKTOP" != "none" && "$DESKTOP" != mx-* ]]; then
+    DESKTOP="mx-$DESKTOP"
+elif [[ "$OS" == "mint" && "$DESKTOP" != "none" && "$DESKTOP" != mint-* ]]; then
+    DESKTOP="mint-$DESKTOP"
+elif [[ "$OS" == "lmde" && "$DESKTOP" != "none" && "$DESKTOP" != lmde-* ]]; then
+    DESKTOP="lmde-$DESKTOP"
 fi
 
 echo "Compresión: 1) zip 2) rar 3) 7z 4) Ninguna"
@@ -683,6 +768,44 @@ prepare_distro_keyring() {
                 log "No se pudo descargar el keyring de Parrot; se intentará sin verificación de firma." "WARNING"
             fi
             ;;
+        mx)
+            # MX Linux se hace bootstrap desde el mirror de Debian (trixie), por lo que la
+            # verificación de firma del bootstrap usa la keyring de Debian por defecto.
+            # La keyring de MX sólo se necesita dentro del invitado para confiar en mxrepo.
+            KEYRING_DIR=$(mktemp -d /tmp/vm_keyring.XXXXXX)
+            local kr_deb="$KEYRING_DIR/mx-keyring.deb"
+            local kr_file="$KEYRING_DIR/mx-archive-keyring.gpg"
+            log "Descargando keyring oficial de MX Linux (mx25-archive-keyring)..." "INFO"
+            if curl -fsSL "https://mxrepo.com/mx/repo/pool/main/m/mx25-archive-keyring/mx25-archive-keyring_2025.03_all.deb" -o "$kr_deb" \
+               && dpkg-deb -x "$kr_deb" "$KEYRING_DIR/extract" \
+               && cp "$KEYRING_DIR/extract/usr/share/keyrings/mx-25-archive-keyring.gpg" "$kr_file"; then
+                BOOTSTRAP_KEYRING=""   # el bootstrap se verifica con la keyring de Debian
+                GUEST_KEYRING_NAME="mx-25-archive-keyring.gpg"
+                MX_GUEST_KEYRING="$kr_file"
+            else
+                log "No se pudo descargar el keyring de MX; el repo MX se marcará como [trusted=yes]." "WARNING"
+                MX_GUEST_KEYRING=""
+            fi
+            ;;
+        mint|lmde)
+            # Linux Mint y LMDE se hacen bootstrap desde Ubuntu/Debian respectivamente, así que
+            # el bootstrap se verifica con la keyring del sistema base. La keyring de Linux Mint
+            # (linuxmint-keyring) sólo hace falta dentro del invitado para el repo de Mint.
+            KEYRING_DIR=$(mktemp -d /tmp/vm_keyring.XXXXXX)
+            local lm_deb="$KEYRING_DIR/linuxmint-keyring.deb"
+            local lm_file="$KEYRING_DIR/linuxmint-keyring.gpg"
+            log "Descargando keyring oficial de Linux Mint (linuxmint-keyring)..." "INFO"
+            if curl -fsSL "${LM_MIRROR}pool/main/l/linuxmint-keyring/linuxmint-keyring_2022.06.21_all.deb" -o "$lm_deb" \
+               && dpkg-deb -x "$lm_deb" "$KEYRING_DIR/extract" \
+               && cp "$KEYRING_DIR/extract/usr/share/keyrings/linuxmint-keyring.gpg" "$lm_file"; then
+                BOOTSTRAP_KEYRING=""   # el bootstrap se verifica con la keyring de Ubuntu/Debian
+                GUEST_KEYRING_NAME="linuxmint-keyring.gpg"
+                LM_GUEST_KEYRING="$lm_file"
+            else
+                log "No se pudo descargar el keyring de Linux Mint; el repo Mint se marcará como [trusted=yes]." "WARNING"
+                LM_GUEST_KEYRING=""
+            fi
+            ;;
     esac
 }
 
@@ -706,6 +829,9 @@ DEBOOTSTRAP_ARGS=(--arch amd64)
 [[ -n "$BOOTSTRAP_KEYRING" ]] && DEBOOTSTRAP_ARGS+=(--keyring="$BOOTSTRAP_KEYRING")
 case "$OS" in
     kali|parrot) DEBOOTSTRAP_ARGS+=(--components="main,contrib,non-free,non-free-firmware") ;;
+    mx) DEBOOTSTRAP_ARGS+=(--components="main,contrib,non-free,non-free-firmware") ;;
+    lmde) DEBOOTSTRAP_ARGS+=(--components="main,contrib,non-free,non-free-firmware") ;;
+    mint) DEBOOTSTRAP_ARGS+=(--components="main,restricted,universe,multiverse") ;;
 esac
 
 log "Ejecutando debootstrap (esto puede tardar varios minutos)..." "INFO"
@@ -720,6 +846,24 @@ if [[ -n "$BOOTSTRAP_KEYRING" && -n "$GUEST_KEYRING_NAME" ]]; then
     sudo cp "$BOOTSTRAP_KEYRING" "$MOUNT_DIR/usr/share/keyrings/$GUEST_KEYRING_NAME"
 fi
 
+# Para MX Linux la keyring de MX no se usa en el bootstrap (éste va contra Debian),
+# pero hace falta dentro del invitado para validar el repo de mxrepo.com.
+if [[ "$OS" == "mx" && -n "$MX_GUEST_KEYRING" ]]; then
+    log "Instalando keyring de MX Linux en el sistema invitado..." "DEBUG"
+    sudo mkdir -p "$MOUNT_DIR/etc/apt/trusted.gpg.d" "$MOUNT_DIR/usr/share/keyrings"
+    sudo cp "$MX_GUEST_KEYRING" "$MOUNT_DIR/etc/apt/trusted.gpg.d/$GUEST_KEYRING_NAME"
+    sudo cp "$MX_GUEST_KEYRING" "$MOUNT_DIR/usr/share/keyrings/$GUEST_KEYRING_NAME"
+fi
+
+# Para Linux Mint / LMDE la keyring de Mint no se usa en el bootstrap (éste va contra
+# Ubuntu/Debian), pero hace falta dentro del invitado para validar packages.linuxmint.com.
+if [[ ( "$OS" == "mint" || "$OS" == "lmde" ) && -n "$LM_GUEST_KEYRING" ]]; then
+    log "Instalando keyring de Linux Mint en el sistema invitado..." "DEBUG"
+    sudo mkdir -p "$MOUNT_DIR/etc/apt/trusted.gpg.d" "$MOUNT_DIR/usr/share/keyrings"
+    sudo cp "$LM_GUEST_KEYRING" "$MOUNT_DIR/etc/apt/trusted.gpg.d/$GUEST_KEYRING_NAME"
+    sudo cp "$LM_GUEST_KEYRING" "$MOUNT_DIR/usr/share/keyrings/$GUEST_KEYRING_NAME"
+fi
+
 # --- CHROOT CONFIG ---
 log "Preparando fase CHROOT..." "INFO"
 
@@ -727,8 +871,12 @@ log "Preparando fase CHROOT..." "INFO"
 G_PKG=""
 if [[ "$HYPERVISOR" == "vbox" || "$HYPERVISOR" == "vagrant" ]]; then
     G_PKG="virtualbox-guest-x11 virtualbox-guest-utils"
-    # Los derivados de Debian necesitan el módulo DKMS; Ubuntu ya lo trae en el kernel
-    [[ "$OS" != "ubuntu" ]] && G_PKG="$G_PKG virtualbox-guest-dkms"
+    # Kali, Parrot y Debian necesitan el módulo DKMS. Ubuntu/Mint lo traen en el kernel y
+    # MX/LMDE usan el kernel de Debian (que ya incluye vboxguest/vboxsf) y no empaquetan
+    # el módulo DKMS, por lo que sólo hacen falta las utilidades de usuario.
+    if [[ "$OS" == "kali" || "$OS" == "parrot" || "$OS" == "debian" ]]; then
+        G_PKG="$G_PKG virtualbox-guest-dkms"
+    fi
 elif [[ "$HYPERVISOR" == "vmware" ]]; then
     G_PKG="open-vm-tools-desktop"
 elif [[ "$HYPERVISOR" == "qemu" ]]; then
@@ -737,7 +885,7 @@ elif [[ "$HYPERVISOR" == "hyperv" ]]; then
     G_PKG="hyperv-daemons"
 fi
 
-if [[ "$OS" == "ubuntu" ]]; then
+if [[ "$OS" == "ubuntu" || "$OS" == "mint" ]]; then
     KERNEL_PKGS="linux-image-generic grub-pc"
 else
     KERNEL_PKGS="linux-image-amd64 grub-pc"
@@ -770,6 +918,21 @@ elif [[ "$OS" == "parrot" ]]; then
         htb) DISTRO_META_PKGS="parrot-core parrot-interface parrot-tools-full parrot-drivers $PARROT_DE_PKG" ;;
         *) DISTRO_META_PKGS="parrot-core parrot-interface parrot-interface-extra parrot-tools-full parrot-drivers $PARROT_DE_PKG" ;;
     esac
+elif [[ "$OS" == "mx" ]]; then
+    # Paquetes propios de MX Linux (herramientas, integración, arte y apps por escritorio)
+    MX_APPS_PKG="mx-apps"
+    case "$DESKTOP" in
+        mx-kde) MX_APPS_PKG="mx-apps-kde" ;;
+        mx-fluxbox) MX_APPS_PKG="mx-apps-fluxbox" ;;
+    esac
+    DISTRO_META_PKGS="mx-system mx-tools mx-welcome mx-welcome-data mx25-artwork $MX_APPS_PKG"
+elif [[ "$OS" == "mint" ]]; then
+    # Linux Mint: paquetes base de Mint (herramientas y códecs). El escritorio (Cinnamon/MATE/XFCE)
+    # se instala más abajo mediante los metapaquetes mint-meta-<escritorio>.
+    DISTRO_META_PKGS="mint-meta-core mint-meta-codecs"
+elif [[ "$OS" == "lmde" ]]; then
+    # LMDE: igual que Mint, apoyándose en los paquetes base de Mint sobre Debian.
+    DISTRO_META_PKGS="mint-meta-core mint-meta-codecs"
 fi
 
 cat <<CHROOT_SCRIPT > "$CONFIG_DIR/$NAME/setup.sh"
@@ -807,6 +970,45 @@ case "$OS" in
         echo "deb $SELECTED_MIRROR ${OS_CODENAME}-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
         echo "deb $SELECTED_MIRROR ${OS_CODENAME}-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
         echo "deb $SELECTED_MIRROR ${OS_CODENAME}-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        ;;
+    mx)
+        # MX Linux = Debian Stable (trixie) + repositorio de la comunidad MX (mxrepo.com)
+        echo "deb $SELECTED_MIRROR $OS_CODENAME main contrib non-free non-free-firmware" > /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        echo "deb http://security.debian.org/debian-security $OS_CODENAME-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        # Repositorio MX (signed-by la keyring instalada en /usr/share/keyrings)
+        if [[ -f /usr/share/keyrings/${GUEST_KEYRING_NAME:-none} ]]; then
+            echo "deb [signed-by=/usr/share/keyrings/$GUEST_KEYRING_NAME] ${MX_MIRROR:-http://mxrepo.com/mx/repo/} $OS_CODENAME main non-free" > /etc/apt/sources.list.d/mx.list
+        else
+            echo "deb [trusted=yes] ${MX_MIRROR:-http://mxrepo.com/mx/repo/} $OS_CODENAME main non-free" > /etc/apt/sources.list.d/mx.list
+        fi
+        ;;
+    mint)
+        # Linux Mint = Ubuntu (noble) + repositorio de Linux Mint (packages.linuxmint.com)
+        echo "deb $SELECTED_MIRROR $OS_CODENAME main restricted universe multiverse" > /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-updates main restricted universe multiverse" >> /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-backports main restricted universe multiverse" >> /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-security main restricted universe multiverse" >> /etc/apt/sources.list
+        # Repositorio de Linux Mint (signed-by la keyring linuxmint-keyring)
+        if [[ -f /usr/share/keyrings/${GUEST_KEYRING_NAME:-none} ]]; then
+            echo "deb [signed-by=/usr/share/keyrings/$GUEST_KEYRING_NAME] ${LM_MIRROR} ${LM_SUITE} main upstream import backport" > /etc/apt/sources.list.d/mint.list
+        else
+            echo "deb [trusted=yes] ${LM_MIRROR} ${LM_SUITE} main upstream import backport" > /etc/apt/sources.list.d/mint.list
+        fi
+        ;;
+    lmde)
+        # LMDE = Debian (trixie) + repositorio de Linux Mint (packages.linuxmint.com)
+        echo "deb $SELECTED_MIRROR $OS_CODENAME main contrib non-free non-free-firmware" > /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        echo "deb $SELECTED_MIRROR $OS_CODENAME-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        echo "deb http://security.debian.org/debian-security $OS_CODENAME-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+        # Repositorio de Linux Mint (signed-by la keyring linuxmint-keyring)
+        if [[ -f /usr/share/keyrings/${GUEST_KEYRING_NAME:-none} ]]; then
+            echo "deb [signed-by=/usr/share/keyrings/$GUEST_KEYRING_NAME] ${LM_MIRROR} ${LM_SUITE} main upstream import backport" > /etc/apt/sources.list.d/mint.list
+        else
+            echo "deb [trusted=yes] ${LM_MIRROR} ${LM_SUITE} main upstream import backport" > /etc/apt/sources.list.d/mint.list
+        fi
         ;;
     *)
         # Debian: contrib, non-free y backports siempre presentes (requisito de Fast Track)
@@ -859,6 +1061,22 @@ iface eth0 inet dhcp
 allow-hotplug enp0s8
 iface enp0s8 inet dhcp
 EOF_NET
+    # MX Linux, Linux Mint y LMDE usan NetworkManager por defecto; se instala y habilita
+    if [[ "$OS" == "mx" || "$OS" == "mint" || "$OS" == "lmde" ]]; then
+        echo "Instalando y habilitando NetworkManager ($OS)..."
+        apt-get install -y network-manager network-manager-gnome || \
+            apt-get install -y network-manager || true
+        # Evitar que ifupdown gestione las interfaces que debe manejar NetworkManager
+        cat > /etc/NetworkManager/conf.d/10-acme-managed.conf <<'EOF_NM'
+[main]
+plugins=ifupdown,keyfile
+
+[ifupdown]
+managed=true
+EOF_NM
+        # Marcar eth0/enp0s3 como no gestionadas por ifupdown (lo hará NM)
+        sed -i '/^allow-hotplug enp0s3/,+1d; /^allow-hotplug eth0/,+1d; /^allow-hotplug enp0s8/,+1d' /etc/network/interfaces 2>/dev/null || true
+    fi
 fi
 
 # Pre-crear directorios que suelen causar fallos en scripts de post-instalación de paquetes (como plymouth)
@@ -1078,6 +1296,34 @@ if [[ "$DESKTOP" != "none" ]]; then
                 parrot-xfce) apt-get install -y parrot-desktop-xfce ;;
                 parrot-gnome) apt-get install -y parrot-desktop-gnome ;;
                 parrot-i3) apt-get install -y parrot-desktop-i3 ;;
+            esac
+            ;;
+        mx)
+            # MX se apoya en los task de Debian para el escritorio y añade sus paquetes propios
+            case "$DESKTOP" in
+                mx-kde) apt-get install -y task-kde-desktop ;;
+                mx-fluxbox) apt-get install -y fluxbox xfce4-terminal xfce4-panel xfce4-settings xfce4-session thunar ;;
+                mx-mate) apt-get install -y task-mate-desktop ;;
+                mx-gnome) apt-get install -y task-gnome-desktop ;;
+                mx-cinnamon) apt-get install -y task-cinnamon-desktop ;;
+                mx-lxqt) apt-get install -y task-lxqt-desktop ;;
+                mx-xfce) apt-get install -y task-xfce-desktop ;;
+            esac
+            ;;
+        mint)
+            # Linux Mint: metapaquetes propios de cada edición (traen Cinnamon/MATE/XFCE + apps Mint)
+            case "$DESKTOP" in
+                mint-cinnamon) apt-get install -y mint-meta-cinnamon ;;
+                mint-mate) apt-get install -y mint-meta-mate ;;
+                mint-xfce) apt-get install -y mint-meta-xfce ;;
+            esac
+            ;;
+        lmde)
+            # LMDE 7 sólo distribuye Cinnamon; para XFCE/MATE se usan los task de Debian
+            case "$DESKTOP" in
+                lmde-cinnamon) apt-get install -y mint-meta-cinnamon ;;
+                lmde-xfce) apt-get install -y task-xfce-desktop ;;
+                lmde-mate) apt-get install -y task-mate-desktop ;;
             esac
             ;;
         *)
